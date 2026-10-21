@@ -1,0 +1,61 @@
+{
+	"Name": "SimpleMute",
+	"Version": "0.1.0.0",
+	"Author": "Anam Ahmed",
+	"Actions": [
+		{
+			"Name": "Toggle Microphone",
+			"UUID": "com.anamahmed.simplemute.mic",
+			"Icon": "imgs/actions/mic/icon",
+			"Tooltip": "Mutes or unmutes the microphone in the active Meet, Zoom or Teams web meeting.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/mic/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Toggle Camera",
+			"UUID": "com.anamahmed.simplemute.camera",
+			"Icon": "imgs/actions/camera/icon",
+			"Tooltip": "Turns the camera on or off in the active Meet, Zoom or Teams web meeting.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/camera/key",
+					"ShowTitle": false
+				}
+			]
+		}
+	],
+	"Category": "SimpleMute",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Toggle your mic and camera in Google Meet, Zoom and Teams web meetings, with key icons that show live state. Requires the SimpleMute Chrome extension.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24",
+		"Debug": "enabled"
+	},
+	"UUID": "com.anamahmed.simplemute"
+}

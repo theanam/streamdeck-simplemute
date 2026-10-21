@@ -5,6 +5,7 @@
  * This module deliberately has no Stream Deck SDK imports so it can be unit-tested in plain Node.
  */
 import { EventEmitter } from "node:events";
+import type { IncomingMessage } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 
 import {
@@ -128,7 +129,8 @@ export class Bridge extends EventEmitter {
 				host: this.#host,
 				port: this.#port,
 				maxPayload: MAX_PAYLOAD_BYTES,
-				verifyClient: (info) => this.#verifyClient(info.origin, info.req.socket.remoteAddress),
+				verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) =>
+					this.#verifyClient(info.origin, info.req.socket.remoteAddress),
 			});
 			this.#server = server;
 
