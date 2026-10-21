@@ -36,7 +36,7 @@ Then load it:
 
 Repeat these steps in every browser profile you use for meetings; each profile keeps its own extension and its own connection.
 
-The badge on the icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. If it stays red, see [Troubleshooting](#troubleshooting).
+The badge on the icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. Click the icon for a status panel: it says what the keys are controlling, or, when the plugin is not reachable, what to do about it, with a download link and a retry button.
 
 ### 3. Add a key
 
@@ -107,11 +107,11 @@ SimpleMute collects nothing. The only network traffic is between the plugin and 
 - **System microphone fallback** is macOS only. It uses the system input volume (mute sets it to 0 and unmute restores the previous level), which affects every app. Windows shows the idle icon when no meeting is running.
 - **Zoom** button labels are matched in English only. Meet works in any language. Teams support is experimental.
 - Native desktop apps (Zoom desktop, Teams desktop) are not supported.
-- No raise hand, no Stream Deck+ dials, no settings panel.
+- No raise hand, no Stream Deck+ dials.
 
 ## Troubleshooting
 
-**Key stays dark grey.** The extension cannot reach the plugin. Check that the Stream Deck app is running and the plugin is installed. If another program is using port 51234, the plugin logs the conflict and retries every 3 seconds; see the plugin's `logs/` folder inside the plugin directory.
+**Key stays dark grey.** The extension cannot reach the plugin. Click the extension's toolbar icon: the panel says whether it is connected. Check that the Stream Deck app is running and the plugin is installed. If another program holds port 51234, the plugin moves to 51235, 51236 or 51237 and the extension finds it there; the plugin's `logs/` folder inside the plugin directory says which port it took.
 
 **Key stays grey in a meeting.** The extension did not find the meeting's buttons. Open the meeting tab's DevTools console, select the extension's context in the dropdown, and look for `[SimpleMute] state` lines. `inMeeting: false` during a live call means a selector needs updating; see [Fixing a selector](#fixing-a-selector).
 
@@ -170,17 +170,18 @@ scripts/                      packaging and asset generation
 
 ### Protocol
 
-JSON text frames over `ws://127.0.0.1:51234`. The extension is the client. Unknown message types are ignored on both sides.
+JSON text frames over `ws://127.0.0.1:<port>`, where the port is the first free one of 51234, 51235, 51236 and 51237. The extension is the client. Unknown message types are ignored on both sides.
 
 | Direction | Type | Fields |
 | --- | --- | --- |
 | ext → plugin | `hello` | `version`, `clientId` (random UUID per browser profile) |
+| plugin → ext | `welcome` | `plugin` (`"co.anam.simplemute"`), `version`, `port`; sent in reply to `hello` so the extension can tell SimpleMute from anything else on a fallback port |
 | ext → plugin | `state` | `inMeeting`, `site`, `mic`, `camera`, `share` (`"on"`, `"off"`, `"unknown"`), `focused` |
 | ext → plugin | `ping` | keep-alive every 20 s |
 | plugin → ext | `command` | `id`, `action` (`"toggle"` or `"leave"`), `kind` (`"mic"`, `"camera"`, `"share"`, `"leave"`) |
 | ext → plugin | `result` | `id`, `ok`, optional `error` |
 
-Before opening the WebSocket, the extension probes the port with a plain HTTP request, which the plugin answers with `426 Upgrade Required`. This keeps the browser's error console clean while the Stream Deck app is closed.
+Before opening a WebSocket, the extension probes each port with a plain HTTP request, which the plugin answers with `426 Upgrade Required`. This keeps the browser's error console clean while the Stream Deck app is closed. A port that answers the probe but sends no `welcome` within two seconds is skipped.
 
 ### Fixing a selector
 
@@ -194,7 +195,7 @@ Pull requests with selector fixes or new site adapters are welcome.
 
 ### Customizing
 
-- **Port:** `BRIDGE_PORT` in `plugin/src/config.ts` and `PORT` in `extension/background.js`. Change both.
+- **Ports:** `BRIDGE_PORTS` in `plugin/src/config.ts` and `PORTS` in `extension/background.js`. Change both.
 - **Plugin UUID:** `co.anam.simplemute` appears in `plugin/src/config.ts`, the plugin manifest, the plugin folder name, `plugin/package.json`, `plugin/rollup.config.mjs` and `plugin/scripts/make-icons.mjs`.
 - **Lock the bridge to one extension ID:** pin the extension ID with a `key` in `extension/manifest.json`, then replace the pattern in `isAllowedOrigin()` in `plugin/src/config.ts` with an exact match.
 

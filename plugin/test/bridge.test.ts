@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 
+import { createServer } from "node:net";
+
 import { Bridge, type BridgeStatus } from "../src/bridge";
-import { isAllowedOrigin } from "../src/config";
+import { PLUGIN_UUID, isAllowedOrigin } from "../src/config";
 
 const EXT_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
 
@@ -132,6 +134,25 @@ describe("Bridge connections", () => {
 		const res = await fetch(`http://127.0.0.1:${bridge.port}/`);
 		expect(res.status).toBe(426);
 		expect(res.headers.get("connection")).toBe("close");
+	});
+
+	it("welcomes a client after hello, naming the plugin and port", async () => {
+		const a = await hello("a");
+		const welcome = await a.next("welcome");
+		expect(welcome).toMatchObject({ type: "welcome", plugin: PLUGIN_UUID, port: bridge.port });
+		expect(typeof welcome.version).toBe("string");
+	});
+
+	it("falls back to the next port when the first is taken", async () => {
+		const blocker = createServer();
+		await new Promise<void>((r) => blocker.listen(0, "127.0.0.1", r));
+		const taken = (blocker.address() as { port: number }).port;
+		const fallback = new Bridge({ ports: [taken, 0], heartbeatIntervalMs: 60_000 });
+		await fallback.start();
+		expect(fallback.port).not.toBe(taken);
+		expect(fallback.port).toBeGreaterThan(0);
+		await fallback.stop();
+		await new Promise<void>((r) => blocker.close(() => r()));
 	});
 
 	it("accepts an extension origin and reports connected", async () => {

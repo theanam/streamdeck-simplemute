@@ -10,10 +10,14 @@ export const PLUGIN_UUID = "co.anam.simplemute";
 export const BRIDGE_HOST = "127.0.0.1";
 
 /**
- * Port of the localhost WebSocket server the extension connects to.
- * The same number is hard-coded in `extension/background.js` (`PORT`); change both together.
+ * Ports the localhost WebSocket server tries, in order. The first free one wins; if another program
+ * holds 51234 the plugin moves to the next and the extension finds it by probing the same list.
+ * The same list is hard-coded in `extension/background.js` (`PORTS`); change both together.
  */
-export const BRIDGE_PORT = 51234;
+export const BRIDGE_PORTS = [51234, 51235, 51236, 51237];
+
+/** Default port, kept for callers that need a single number. */
+export const BRIDGE_PORT = BRIDGE_PORTS[0];
 
 /** How long `toggle()` waits for the extension to answer a command before giving up. */
 export const COMMAND_TIMEOUT_MS = 2_000;

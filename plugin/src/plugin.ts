@@ -7,7 +7,7 @@ import { createSystemMic } from "./system-mic";
 
 streamDeck.logger.setLevel("info");
 
-const bridge = new Bridge({ logger: streamDeck.logger.createScope("bridge") });
+const bridge = new Bridge({ logger: streamDeck.logger.createScope("bridge"), version: streamDeck.info.plugin.version });
 const images = loadKeyImages();
 const systemMic = createSystemMic();
 

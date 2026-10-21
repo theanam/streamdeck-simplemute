@@ -50,6 +50,8 @@ Relays mute, camera, share and leave commands from the SimpleMute Stream Deck pl
 
 **Data usage disclosure:** the extension does not collect or transmit user data. Check "This item does not collect user data" in the dashboard.
 
+**Popup:** the toolbar popup shows connection status and links to the plugin download; update `LINKS` in `extension/popup.js` when the Elgato Marketplace listing exists.
+
 **Privacy policy URL:** https://github.com/theanam/streamdeck-simplemute/blob/main/PRIVACY.md
 
 **Files to upload:**

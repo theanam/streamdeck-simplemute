@@ -15,7 +15,7 @@ SimpleMute is a Stream Deck plugin and a companion browser extension that let a 
 
 ## How the two parts communicate
 
-The Stream Deck plugin opens a small server on your own computer at `127.0.0.1` port 51234. The browser extension connects to it over that loopback address only. The messages exchanged are limited to: whether a meeting is open, which supported site it is on (Meet, Zoom or Teams), whether the microphone, camera and screen share are on or off, whether the meeting tab is focused, and the commands sent by key presses. None of this is written to disk or sent anywhere else.
+The Stream Deck plugin opens a small server on your own computer at `127.0.0.1`, on port 51234 or the next free one up to 51237. The browser extension connects to it over that loopback address only. The messages exchanged are limited to: whether a meeting is open, which supported site it is on (Meet, Zoom or Teams), whether the microphone, camera and screen share are on or off, whether the meeting tab is focused, and the commands sent by key presses. None of this is written to disk or sent anywhere else.
 
 The plugin only accepts connections from a browser extension origin, so web pages cannot connect to it.
 

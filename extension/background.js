@@ -1,16 +1,21 @@
 // SimpleMute service worker: keeps a WebSocket to the Stream Deck plugin, tracks which meeting
 // tab/frame a key press should act on, and relays commands to that frame's content script.
 
-/** Port of the plugin's localhost WebSocket server. Mirrored in `plugin/src/config.ts` (BRIDGE_PORT); change both together. */
-const PORT = 51234;
-const URL_ = `ws://127.0.0.1:${PORT}`;
+/**
+ * Ports the plugin's localhost WebSocket server may be on, tried in order. Mirrored in
+ * `plugin/src/config.ts` (BRIDGE_PORTS); change both together. The plugin moves down the list when a
+ * port is taken, and identifies itself with a `welcome` message so a stranger on one of these ports
+ * is skipped.
+ */
+const PORTS = [51234, 51235, 51236, 51237];
+const PLUGIN_ID = "co.anam.simplemute";
+const WELCOME_TIMEOUT_MS = 2_000;
 
 const VERSION = chrome.runtime.getManifest().version;
 const PING_INTERVAL_MS = 20_000; // keep-alive to the plugin; also keeps this worker alive (Chrome 116+)
 const STALE_FRAME_MS = 10_000; // drop frames not heard from in this long
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 10_000; // retries are silent (see pluginReachable), so they can be frequent
-const PROBE_URL = `http://127.0.0.1:${PORT}/`;
 const PROBE_TIMEOUT_MS = 1_500;
 /** If the probe has never succeeded, try a raw WebSocket every Nth attempt in case the probe is what is broken. */
 const RAW_FALLBACK_EVERY = 12;
@@ -46,6 +51,11 @@ let connecting = false;
 let failedAttempts = 0;
 let probeEverSucceeded = false;
 let probeFailures = 0;
+/** Port of the current connection, and the last port that worked (tried first next time). */
+let activePort = null;
+let lastGoodPort = null;
+/** Plugin version from its welcome message, shown in the popup. */
+let pluginVersion = null;
 let backoffMs = BACKOFF_MIN_MS;
 let reconnectTimer = null;
 let pingTimer = null;
@@ -76,7 +86,7 @@ async function getClientId() {
 // ---- connection ---------------------------------------------------------------------------------
 
 /**
- * Checks whether anything answers on the plugin's port before opening a WebSocket.
+ * Checks whether anything answers on a port before opening a WebSocket to it.
  *
  * Chrome logs "WebSocket connection to ... failed: net::ERR_CONNECTION_REFUSED" as an extension
  * error whenever a socket is opened against a closed port, and no handler can suppress it. A
@@ -84,14 +94,11 @@ async function getClientId() {
  * error console clean while the Stream Deck app is closed. The plugin's server answers the probe
  * with "426 Upgrade Required"; in no-cors mode any answer at all resolves the promise.
  */
-async function pluginReachable() {
+async function portAnswers(port) {
 	try {
-		await fetch(PROBE_URL, { method: "GET", mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
-		probeEverSucceeded = true;
-		probeFailures = 0;
+		await fetch(`http://127.0.0.1:${port}/`, { method: "GET", mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
 		return true;
 	} catch {
-		probeFailures += 1;
 		return false;
 	}
 }
@@ -104,80 +111,136 @@ function connect() {
 		clearTimeout(reconnectTimer);
 		reconnectTimer = null;
 	}
-	attemptConnect().catch((err) => {
-		console.debug(LOG, "connect attempt failed:", err && err.message ? err.message : err);
-		connecting = false;
-		scheduleReconnect();
-	});
-}
-
-async function attemptConnect() {
-	const reachable = await pluginReachable();
-	const rawFallback = !reachable && !probeEverSucceeded && probeFailures % RAW_FALLBACK_EVERY === 0;
-	if (!reachable && !rawFallback) {
-		connecting = false;
-		if (++failedAttempts === 1) console.debug(LOG, "plugin not reachable; retrying quietly");
-		scheduleReconnect();
-		return;
-	}
-	openSocket();
-}
-
-/** Creates the WebSocket and wires its handlers. Only called once the port answered a probe. */
-function openSocket() {
-	let ws;
-	try {
-		ws = new WebSocket(URL_);
-	} catch (err) {
-		connecting = false;
-		console.debug(LOG, "WebSocket constructor failed", err);
-		scheduleReconnect();
-		return;
-	}
-
-	ws.onopen = () =>
-		quiet(async () => {
-			socket = ws;
+	attemptConnect()
+		.then((ok) => {
+			if (ok) return;
 			connecting = false;
-			backoffMs = BACKOFF_MIN_MS;
-			failedAttempts = 0;
-			lastSentState = null;
-			console.debug(LOG, "connected to plugin");
-			setBadge(true);
-			send({ type: "hello", version: VERSION, clientId: await getClientId() });
-			pushState();
-			startPing();
+			if (++failedAttempts === 1) console.debug(LOG, "plugin not reachable on any port; retrying quietly");
+			scheduleReconnect();
+		})
+		.catch((err) => {
+			console.debug(LOG, "connect attempt failed:", err && err.message ? err.message : err);
+			connecting = false;
+			scheduleReconnect();
 		});
+}
 
-	ws.onmessage = (event) => {
-		let msg;
+/** Tries each port in turn (last good one first); resolves true once a SimpleMute plugin welcomed us. */
+async function attemptConnect() {
+	const order = lastGoodPort ? [lastGoodPort, ...PORTS.filter((p) => p !== lastGoodPort)] : PORTS;
+	let anyAnswered = false;
+	for (const port of order) {
+		if (!(await portAnswers(port))) continue;
+		anyAnswered = true;
+		if (await openSocket(port)) return true;
+	}
+	if (anyAnswered) {
+		probeEverSucceeded = true;
+		probeFailures = 0;
+		return false;
+	}
+	probeFailures += 1;
+	// If the probe itself never works in this browser, fall back to a raw attempt now and then.
+	if (!probeEverSucceeded && probeFailures % RAW_FALLBACK_EVERY === 0) {
+		return openSocket(PORTS[0]);
+	}
+	return false;
+}
+
+/**
+ * Opens a WebSocket to one port, says hello and waits for the plugin's welcome. Resolves true when
+ * the welcome names SimpleMute (the socket is then the live connection), false otherwise.
+ */
+function openSocket(port) {
+	return new Promise((resolve) => {
+		let settled = false;
+		const settle = (ok) => {
+			if (settled) return;
+			settled = true;
+			resolve(ok);
+		};
+
+		let ws;
 		try {
-			msg = JSON.parse(event.data);
-		} catch {
+			ws = new WebSocket(`ws://127.0.0.1:${port}`);
+		} catch (err) {
+			console.debug(LOG, "WebSocket constructor failed", err);
+			settle(false);
 			return;
 		}
-		if (msg && msg.type === "command") {
-			void quiet(() => handleCommand(msg));
-		}
-	};
 
-	ws.onerror = () => {
-		// Chrome logs the network failure itself; onclose follows and schedules the retry.
-	};
+		const welcomeTimer = setTimeout(() => {
+			if (settled) return;
+			console.debug(LOG, `no welcome from port ${port}; not SimpleMute`);
+			try {
+				ws.close();
+			} catch {
+				// ignore
+			}
+			settle(false);
+		}, WELCOME_TIMEOUT_MS);
 
-	ws.onclose = () => {
-		const wasOpen = socket === ws;
-		if (wasOpen) socket = null;
-		connecting = false;
-		stopPing();
-		setBadge(false);
-		if (wasOpen) {
-			console.debug(LOG, "disconnected from plugin");
-		} else if (++failedAttempts === 1) {
-			console.debug(LOG, "plugin not reachable; retrying quietly with backoff");
-		}
-		scheduleReconnect();
-	};
+		ws.onopen = () =>
+			quiet(async () => {
+				ws.send(JSON.stringify({ type: "hello", version: VERSION, clientId: await getClientId() }));
+			});
+
+		ws.onmessage = (event) => {
+			let msg;
+			try {
+				msg = JSON.parse(event.data);
+			} catch {
+				return;
+			}
+			if (!msg) return;
+			if (msg.type === "welcome" && !settled) {
+				clearTimeout(welcomeTimer);
+				if (msg.plugin !== PLUGIN_ID) {
+					console.debug(LOG, `port ${port} is a different plugin (${msg.plugin}); skipping`);
+					ws.close();
+					settle(false);
+					return;
+				}
+				socket = ws;
+				activePort = port;
+				lastGoodPort = port;
+				pluginVersion = typeof msg.version === "string" ? msg.version : null;
+				connecting = false;
+				backoffMs = BACKOFF_MIN_MS;
+				failedAttempts = 0;
+				probeEverSucceeded = true;
+				lastSentState = null;
+				console.debug(LOG, `connected to plugin on port ${port}`);
+				setBadge(true);
+				pushState();
+				startPing();
+				settle(true);
+				return;
+			}
+			if (msg.type === "command" && socket === ws) {
+				void quiet(() => handleCommand(msg));
+			}
+		};
+
+		ws.onerror = () => {
+			// Chrome logs the network failure itself; onclose follows.
+		};
+
+		ws.onclose = () => {
+			clearTimeout(welcomeTimer);
+			const wasLive = socket === ws;
+			if (wasLive) {
+				socket = null;
+				activePort = null;
+				stopPing();
+				setBadge(false);
+				console.debug(LOG, "disconnected from plugin");
+				connecting = false;
+				scheduleReconnect();
+			}
+			settle(false);
+		};
+	});
 }
 
 function scheduleReconnect() {
@@ -308,13 +371,33 @@ async function handleCommand(msg) {
 
 // ---- content script messages --------------------------------------------------------------------
 
-chrome.runtime.onMessage.addListener((msg, sender) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 	try {
+		if (msg && msg.type === "sdmc:status") {
+			// Popup asking how things are.
+			sendResponse({
+				connected: !!socket,
+				port: activePort,
+				ports: PORTS,
+				pluginVersion,
+				extensionVersion: VERSION,
+				state: currentState(),
+			});
+			return false;
+		}
+		if (msg && msg.type === "sdmc:reconnect") {
+			// Popup's retry button: start over from the first port right away.
+			backoffMs = BACKOFF_MIN_MS;
+			connect();
+			sendResponse({ ok: true });
+			return false;
+		}
 		onContentState(msg, sender);
 	} catch (err) {
-		console.debug(LOG, "state message failed:", err);
+		console.debug(LOG, "message handling failed:", err);
 	}
 	// Returning nothing closes the channel; the content script does not wait for a reply.
+	return false;
 });
 
 function onContentState(msg, sender) {

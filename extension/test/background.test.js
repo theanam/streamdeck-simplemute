@@ -9,6 +9,9 @@ import { Agent, fetch as undiciFetch } from "undici";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket as WsClient } from "ws";
 
+import { createServer } from "node:http";
+import { WebSocketServer } from "ws";
+
 import { Bridge } from "../../plugin/src/bridge";
 
 const EXT_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
@@ -18,8 +21,14 @@ const backgroundSrc = readFileSync(path.resolve(path.dirname(fileURLToPath(impor
 function mockChrome() {
 	const listeners = {};
 	const on = (name) => ({ addListener: (fn) => ((listeners[name] ??= []).push(fn)) });
-	const fire = (name, ...args) => (listeners[name] || []).map((fn) => fn(...args));
+	const fire = (name, ...args) =>
+		(listeners[name] || []).map((fn) => {
+			// Supply a sendResponse callback like Chrome does and remember what it was given.
+			const sendResponse = (r) => (api.lastResponse = r);
+			return fn(...args, sendResponse);
+		});
 	const storage = {};
+	const api = { lastResponse: undefined };
 	const chrome = {
 		runtime: {
 			id: "abcdefghijklmnopabcdefghijklmnop",
@@ -56,18 +65,20 @@ function mockChrome() {
 		},
 		scripting: { executeScript: vi.fn(async () => {}) },
 	};
-	return { chrome, fire, storage };
+	Object.assign(api, { chrome, fire, storage });
+	return api;
 }
 
 /**
  * Runs background.js in an isolated context. Timers and sockets it creates are tracked so
  * `teardown()` stops the worker for good; `outgoing` holds every frame it sent to the plugin.
  */
-function loadWorker(chrome, port) {
+function loadWorker(chrome, ports) {
 	// The real extensions in the user's Chrome profiles poll 51234 and would connect to a test bridge
-	// on that port, so each test runs on a random free port, patched into the worker source.
-	const src = backgroundSrc.replace("const PORT = 51234;", `const PORT = ${port};`);
-	if (src === backgroundSrc) throw new Error("could not patch PORT in background.js");
+	// on that port, so each test runs on random free ports, patched into the worker source.
+	const list = Array.isArray(ports) ? ports : [ports];
+	const src = backgroundSrc.replace("const PORTS = [51234, 51235, 51236, 51237];", `const PORTS = [${list.join(", ")}];`);
+	if (src === backgroundSrc) throw new Error("could not patch PORTS in background.js");
 	const timers = new Set();
 	const sockets = [];
 	const outgoing = [];
@@ -194,6 +205,14 @@ describe("background service worker", () => {
 		await waitFor(() => worker.outgoing.some((m) => m.type === "hello"), "hello to be sent");
 	});
 
+	it("answers the popup's status request", async () => {
+		contentState(3, 0, { site: "zoom", inMeeting: true, mic: "off", camera: "on", share: "off" });
+		await waitFor(() => bridge.status.inMeeting);
+		mock.fire("onMessage", { type: "sdmc:status" }, { id: "popup" });
+		expect(mock.lastResponse).toMatchObject({ connected: true, port, state: { inMeeting: true, site: "zoom", mic: "off" } });
+		expect(mock.lastResponse.ports).toEqual([port]);
+	});
+
 	it("says hello with a persisted clientId and clears the badge", async () => {
 		expect(typeof mock.storage.clientId).toBe("string");
 		expect(mock.storage.clientId).toMatch(/^[0-9a-f-]{36}$/);
@@ -301,5 +320,32 @@ describe("background service worker with the plugin down", () => {
 		await startBridge();
 		await waitFor(() => bridge.clientCount === 1, "worker to connect once the port answers", 12_000);
 		expect(worker.sockets.length).toBe(1);
+	}, 20_000);
+});
+
+describe("background service worker port discovery", () => {
+	it("skips a port held by something else and connects on the fallback port", async () => {
+		// A plain HTTP server answers the probe but is not a WebSocket server.
+		const stranger = createServer((req, res) => res.end("hi"));
+		await new Promise((r) => stranger.listen(0, "127.0.0.1", r));
+		const strangerPort = stranger.address().port;
+		await startBridge();
+		worker = loadWorker(mock.chrome, [strangerPort, port]);
+		await waitFor(() => bridge.clientCount === 1, "worker to reach the fallback port", 12_000);
+		await waitFor(() => worker.outgoing.some((m) => m.type === "state"), "state after welcome");
+		mock.fire("onMessage", { type: "sdmc:status" }, { id: "popup" });
+		expect(mock.lastResponse).toMatchObject({ connected: true, port });
+		await new Promise((r) => stranger.close(r));
+	}, 20_000);
+
+	it("skips a WebSocket server that never says welcome", async () => {
+		const impostor = new WebSocketServer({ host: "127.0.0.1", port: 0 });
+		await new Promise((r) => impostor.once("listening", r));
+		const impostorPort = impostor.address().port;
+		await startBridge();
+		worker = loadWorker(mock.chrome, [impostorPort, port]);
+		await waitFor(() => bridge.clientCount === 1, "worker to move past the impostor", 12_000);
+		expect(worker.sockets.length).toBe(2); // one to the impostor, one to the real plugin
+		await new Promise((r) => impostor.close(r));
 	}, 20_000);
 });

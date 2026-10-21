@@ -10,10 +10,11 @@ import { WebSocket, WebSocketServer } from "ws";
 
 import {
 	BRIDGE_HOST,
-	BRIDGE_PORT,
+	BRIDGE_PORTS,
 	COMMAND_TIMEOUT_MS,
 	HEARTBEAT_INTERVAL_MS,
 	MAX_PAYLOAD_BYTES,
+	PLUGIN_UUID,
 	SERVER_RETRY_MS,
 	isAllowedOrigin,
 } from "./config";
@@ -54,7 +55,12 @@ export type BridgeLogger = {
 
 export type BridgeOptions = {
 	host?: string;
+	/** Single port (0 for a random free one). Overrides `ports`. */
 	port?: number;
+	/** Ports to try in order; the first that binds is used. */
+	ports?: number[];
+	/** Reported to clients in the `welcome` message. */
+	version?: string;
 	commandTimeoutMs?: number;
 	heartbeatIntervalMs?: number;
 	retryMs?: number;
@@ -83,7 +89,10 @@ const silentLogger: BridgeLogger = { debug() {}, info() {}, warn() {}, error() {
 
 export class Bridge extends EventEmitter {
 	readonly #host: string;
-	readonly #port: number;
+	readonly #ports: number[];
+	readonly #version: string;
+	/** Index into #ports of the next port to try. */
+	#portIndex = 0;
 	readonly #commandTimeoutMs: number;
 	readonly #heartbeatIntervalMs: number;
 	readonly #retryMs: number;
@@ -103,7 +112,8 @@ export class Bridge extends EventEmitter {
 	constructor(options: BridgeOptions = {}) {
 		super();
 		this.#host = options.host ?? BRIDGE_HOST;
-		this.#port = options.port ?? BRIDGE_PORT;
+		this.#ports = options.port !== undefined ? [options.port] : (options.ports ?? BRIDGE_PORTS);
+		this.#version = options.version ?? "0.0.0";
 		this.#commandTimeoutMs = options.commandTimeoutMs ?? COMMAND_TIMEOUT_MS;
 		this.#heartbeatIntervalMs = options.heartbeatIntervalMs ?? HEARTBEAT_INTERVAL_MS;
 		this.#retryMs = options.retryMs ?? SERVER_RETRY_MS;
@@ -118,7 +128,7 @@ export class Bridge extends EventEmitter {
 	/** Port the server is listening on (useful when constructed with port 0 in tests). */
 	get port(): number {
 		const address = this.#http?.address();
-		return typeof address === "object" && address ? address.port : this.#port;
+		return typeof address === "object" && address ? address.port : this.#ports[0];
 	}
 
 	/** Number of currently connected clients. */
@@ -127,7 +137,8 @@ export class Bridge extends EventEmitter {
 	}
 
 	/**
-	 * Starts listening; resolves once the server is up. On error it logs and retries every `retryMs`.
+	 * Starts listening; resolves once the server is up. If the port is taken it moves to the next one in
+	 * the list; once the list is exhausted it waits `retryMs` and starts over from the first port.
 	 *
 	 * Everything the bridge owns (listener, client sockets, timers) is `unref`ed so it never keeps the
 	 * process alive on its own. Stream Deck stops a plugin by closing its socket and expecting the
@@ -148,8 +159,10 @@ export class Bridge extends EventEmitter {
 			});
 			this.#server = server;
 
+			const port = this.#ports[this.#portIndex];
+
 			http.once("listening", () => {
-				this.#log.info(`Bridge listening on ws://${this.#host}:${this.port}`);
+				this.#log.info(`Bridge listening on ws://${this.#host}:${this.port}` + (this.#portIndex > 0 ? ` (fallback; ${this.#ports[0]} was taken)` : ""));
 				this.#startHeartbeat();
 				resolve();
 			});
@@ -159,25 +172,38 @@ export class Bridge extends EventEmitter {
 				this.#onConnection(socket);
 			});
 
+			// `ws` re-emits the HTTP server's error on the WebSocketServer, so this can fire twice per attempt.
+			let handled = false;
 			const onError = (err: NodeJS.ErrnoException): void => {
-				this.#log.error(`Bridge server error (${err.code ?? "unknown"}): ${err.message}; retrying in ${this.#retryMs} ms`);
+				if (handled) return;
+				handled = true;
 				this.#stopHeartbeat();
 				server.close();
 				http.close();
 				this.#server = null;
 				this.#http = null;
-				if (!this.#stopped) {
-					this.#retry = setTimeout(() => {
-						this.#retry = null;
-						void this.start().then(resolve);
-					}, this.#retryMs);
-					this.#retry.unref();
+				if (this.#stopped) return;
+
+				const inUse = err.code === "EADDRINUSE";
+				const hasNext = this.#portIndex + 1 < this.#ports.length;
+				if (inUse && hasNext) {
+					this.#portIndex += 1;
+					this.#log.warn(`Port ${port} is in use; trying ${this.#ports[this.#portIndex]}`);
+					void this.start().then(resolve);
+					return;
 				}
+				this.#log.error(`Bridge server error on port ${port} (${err.code ?? "unknown"}): ${err.message}; retrying in ${this.#retryMs} ms`);
+				this.#portIndex = 0;
+				this.#retry = setTimeout(() => {
+					this.#retry = null;
+					void this.start().then(resolve);
+				}, this.#retryMs);
+				this.#retry.unref();
 			};
 			http.on("error", onError);
 			server.on("error", onError);
 
-			http.listen(this.#port, this.#host);
+			http.listen(port, this.#host);
 		});
 	}
 
@@ -338,6 +364,9 @@ export class Bridge extends EventEmitter {
 
 		client.clientId = clientId;
 		this.#log.info(`hello from client ${clientId ?? "(no id)"} extension v${version}`);
+		// Identifies this server as SimpleMute, so the extension can tell it apart from whatever else
+		// might answer on a fallback port.
+		this.#send(client, { type: "welcome", plugin: PLUGIN_UUID, version: this.#version, port: this.port });
 		this.#updateStatus();
 	}
 

@@ -40,12 +40,13 @@ After the script finishes, upload the packages to the stores by hand (Chrome Web
 
 ## Code
 
-- The extension is plain JavaScript with no build step; do not add a bundler, popup, options page, analytics or permissions without asking.
+- The extension is plain JavaScript with no build step; do not add a bundler, options page, analytics or permissions without asking.
 - The plugin bridge (`plugin/src/bridge.ts`) must stay free of Stream Deck SDK imports so it is testable in plain Node.
 - Site adapters (`extension/content/*.js`) are the files most likely to need changes; every selector change comes with a jsdom fixture in `extension/test/`.
 - Nothing in the extension may surface as an error in `chrome://extensions`; failures are retried quietly at debug level.
 - Nothing the plugin owns may keep the Node process alive (`unref` servers, sockets and timers), so a stopped plugin exits.
-- The port appears in exactly two places: `plugin/src/config.ts` and `extension/background.js`.
+- The port list appears in exactly two places: `BRIDGE_PORTS` in `plugin/src/config.ts` and `PORTS` in `extension/background.js`.
+- The popup (`extension/popup.*`) is the only UI; it needs no extra permissions and asks the worker for status over `sdmc:status`.
 
 ## Workspace
 

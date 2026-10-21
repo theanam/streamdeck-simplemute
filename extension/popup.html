@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>SimpleMute</title>
+	<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+	<header>
+		<img src="icons/icon48.png" width="28" height="28" alt="">
+		<h1>SimpleMute</h1>
+		<span id="dot" class="dot" aria-hidden="true"></span>
+	</header>
+
+	<section id="connected" hidden>
+		<p class="status ok">Connected to Stream Deck</p>
+		<dl>
+			<dt>Controlling</dt><dd id="site">–</dd>
+			<dt>Microphone</dt><dd id="mic">–</dd>
+			<dt>Camera</dt><dd id="camera">–</dd>
+			<dt>Screen share</dt><dd id="share">–</dd>
+		</dl>
+		<p class="hint" id="no-meeting" hidden>No meeting open. Join one in this browser and the keys follow it.</p>
+	</section>
+
+	<section id="disconnected" hidden>
+		<p class="status bad">Stream Deck plugin not reachable</p>
+		<p>The extension needs the SimpleMute plugin running inside the Stream Deck app.</p>
+		<ol>
+			<li>Install the plugin if you haven't: <a id="download" href="#" target="_blank" rel="noopener">download it</a> and double-click the file.</li>
+			<li>Make sure the Stream Deck app is running.</li>
+		</ol>
+		<p class="hint">The extension keeps trying on its own every few seconds.</p>
+		<div class="actions">
+			<button id="retry" type="button">Retry now</button>
+			<a id="guide" class="link" href="#" target="_blank" rel="noopener">Setup guide</a>
+		</div>
+	</section>
+
+	<footer id="footer"></footer>
+	<script src="popup.js"></script>
+</body>
+</html>
