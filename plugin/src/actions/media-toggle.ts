@@ -163,6 +163,7 @@ export class ToggleMic extends MeetingKey {
 		if (this.#poll || !this.systemMic.supported) return;
 		void this.#refreshSystem();
 		this.#poll = setInterval(() => void this.#refreshSystem(), SYSTEM_POLL_MS);
+		this.#poll.unref(); // never keep the process alive once Stream Deck has disconnected
 	}
 
 	#stopPolling(): void {

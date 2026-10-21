@@ -38,7 +38,7 @@ npm run build
 npx streamdeck link co.anam.simplemute.sdPlugin
 ```
 
-`link` creates a symlink in the Stream Deck plugins folder. Restart the Stream Deck app (or run `npx streamdeck restart co.anam.simplemute`) and a **SimpleMute** category with *Toggle Microphone* and *Toggle Camera* appears in the action list. Drag either onto a key. A built `bin/plugin.js` is committed, so `npm run build` is only required after changing the source.
+`link` creates a symlink in the Stream Deck plugins folder. Run `npx streamdeck dev` once as well: it turns on the Stream Deck app's developer mode, without which the CLI's `restart` and `stop` commands are silently ignored by the app. Restart the Stream Deck app (or run `npx streamdeck restart co.anam.simplemute`) and a **SimpleMute** category with *Toggle Microphone* and *Toggle Camera* appears in the action list. Drag either onto a key. A built `bin/plugin.js` is committed, so `npm run build` is only required after changing the source.
 
 Other scripts in `plugin/`: `npm run typecheck`, `npm run validate` (manifest and layout checks), `npm run pack` (creates a `.streamDeckPlugin` installer), `npm run icons` (regenerates every PNG), `npm run watch` (rebuild and restart on change), `npm test`.
 
