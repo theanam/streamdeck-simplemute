@@ -68,17 +68,38 @@ export function keySvg(kind, status) {
 	</svg>`;
 }
 
-/** Monochrome glyph on a transparent background, for action-list and category icons. */
+/** Monochrome glyph on a transparent background, for action-list icons. */
 function monoSvg(kind, color = "#e4e4e7") {
 	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">${glyph(kind, color)}</svg>`;
 }
 
-/** Plugin/extension icon: dark tile with mic (green) and a small camera badge. */
+/**
+ * SimpleMute brand mark: a mic with a bold amber slash, drawn in one colour for the category icon
+ * and on an indigo tile for the plugin and extension icons. Deliberately shows no conferencing brand.
+ */
+function markSvg(micColor, slashColor, cutColor) {
+	return `
+		<rect x="58" y="22" width="28" height="54" rx="14" fill="${micColor}"/>
+		<path d="M44 64 a28 28 0 0 0 56 0" fill="none" stroke="${micColor}" stroke-width="10" stroke-linecap="round"/>
+		<path d="M72 92 v18 M52 110 h40" fill="none" stroke="${micColor}" stroke-width="10" stroke-linecap="round"/>
+		<path d="M34 30 L110 114" stroke="${cutColor}" stroke-width="26" stroke-linecap="round"/>
+		<path d="M34 30 L110 114" stroke="${slashColor}" stroke-width="12" stroke-linecap="round"/>`;
+}
+
+function categorySvg() {
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">${markSvg("#e4e4e7", "#e4e4e7", "transparent")}</svg>`;
+}
+
 function appSvg() {
 	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
-		<rect width="144" height="144" rx="30" fill="#18181b"/>
-		<rect x="16" y="16" width="112" height="112" rx="24" fill="#16a34a"/>
-		${glyph("mic", "#ffffff")}
+		<defs>
+			<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+				<stop offset="0" stop-color="#4f46e5"/>
+				<stop offset="1" stop-color="#312e81"/>
+			</linearGradient>
+		</defs>
+		<rect width="144" height="144" rx="32" fill="url(#bg)"/>
+		${markSvg("#ffffff", "#f59e0b", "#3730a3")}
 	</svg>`;
 }
 
@@ -102,8 +123,8 @@ for (const kind of KINDS) {
 	write(path.join(imgs, "actions", kind, "icon@2x.png"), monoSvg(kind), 40);
 }
 
-write(path.join(imgs, "plugin", "category-icon.png"), monoSvg("mic"), 28);
-write(path.join(imgs, "plugin", "category-icon@2x.png"), monoSvg("mic"), 56);
+write(path.join(imgs, "plugin", "category-icon.png"), categorySvg(), 28);
+write(path.join(imgs, "plugin", "category-icon@2x.png"), categorySvg(), 56);
 write(path.join(imgs, "plugin", "marketplace.png"), appSvg(), 256);
 write(path.join(imgs, "plugin", "marketplace@2x.png"), appSvg(), 512);
 

@@ -1,6 +1,8 @@
 # SimpleMute for Stream Deck
 
-Toggle your microphone and camera in browser-based meetings from a Stream Deck key, with key icons that show the live state. SimpleMute is two pieces: a Stream Deck plugin that runs inside the Stream Deck app and hosts a tiny WebSocket server on localhost, and a Chrome extension whose service worker connects to that server and relays commands to a content script in the meeting tab. There is no desktop companion app, no cloud service and no data collection. Google Meet is the primary target; the Zoom web client and Microsoft Teams web are supported with caveats (see [Known limitations](#known-limitations)).
+A generic mute button for browser-based meetings. SimpleMute lets a Stream Deck key toggle your microphone and camera in whatever conferencing site is open in your browser, with key icons that show the live state. It is two pieces: a Stream Deck plugin that runs inside the Stream Deck app and hosts a tiny WebSocket server on localhost, and a browser extension whose service worker connects to that server and relays commands to a content script in the meeting tab. There is no desktop companion app, no cloud service and no data collection.
+
+Sites are supported through small adapters, one file each, so adding another conferencing service means adding one adapter. Adapters ship for Google Meet, the Zoom web client and Microsoft Teams web (see [Known limitations](#known-limitations)).
 
 ```
 Stream Deck key
