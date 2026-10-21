@@ -12,7 +12,8 @@
 		"assets:store": "node scripts/make-store-assets.mjs",
 		"pack:extension": "node scripts/pack-extension.mjs",
 		"pack:plugin": "npm --prefix plugin run pack -- --force --output ../store/elgato",
-		"pack": "npm run pack:extension && npm run pack:plugin"
+		"pack": "npm run pack:extension && npm run pack:plugin",
+		"publish:chrome": "npm run pack:extension && node scripts/publish-chrome.mjs --publish"
 	},
 	"devDependencies": {
 		"jsdom": "^26.1.0",

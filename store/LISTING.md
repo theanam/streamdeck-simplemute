@@ -49,6 +49,8 @@ Relays mute, camera, share and leave commands from the SimpleMute Stream Deck pl
 
 **Before uploading:** bump `version` in `extension/manifest.json` for every new upload; the store rejects a version it has already seen.
 
+**Updates after the first release:** `npm run publish:chrome` packs the zip, uploads it to the existing item and submits it for review through the Publish API. One-time credential setup is described at the top of `scripts/publish-chrome.mjs`; the listing itself is only editable in the dashboard.
+
 ## Elgato Marketplace
 
 **Product name (30 characters max, cannot be changed later):** SimpleMute
