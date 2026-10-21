@@ -136,6 +136,21 @@ extension/                   Chrome extension (Manifest V3, plain JavaScript, no
   test/                      jsdom adapter tests and the worker integration test
 ```
 
+## Distribution
+
+Two things ship: the plugin as a `.streamDeckPlugin` installer and the extension as a zip. Build both with:
+
+```sh
+npm run pack          # store/chrome/simplemute-extension.zip and store/elgato/co.anam.simplemute.streamDeckPlugin
+npm run assets:store  # regenerates the listing images under store/
+```
+
+**Stream Deck plugin.** Users can install the `.streamDeckPlugin` file directly: double-clicking it opens the Stream Deck app, which installs the plugin. That works without any store. For the Elgato Marketplace, create a Maker account at maker.elgato.com, then in Maker Console choose *Create product*, upload the `.streamDeckPlugin`, fill in the listing, add the app icon, thumbnail and at least three gallery images, and submit for review. Marketplace builds get DRM applied after upload; this plugin already meets the requirements (SDK version 3, minimum app version above 6.9, manifest never read at runtime). Bump `Version` in the manifest for every new upload.
+
+**Chrome extension.** Register a developer account at the Chrome Web Store developer dashboard (one-time fee), create a new item, upload the zip, fill in the listing and privacy tab, and submit for review. Users can also load the `extension/` folder unpacked, which is how it works today. The same zip installs in Edge, Brave and Arc; Edge has its own Add-ons store that accepts the identical package.
+
+All listing text, permission justifications and the list of files to upload are in [store/LISTING.md](store/LISTING.md).
+
 ## Known limitations
 
 - Native desktop apps (Zoom desktop, Teams desktop) are not supported; only the browser clients are.
