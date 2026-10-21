@@ -77,7 +77,7 @@ A `state` always describes one meeting: the one the extension would act on, whic
 
 ## Customizing
 
-**Rename the plugin UUID.** `com.anamahmed.simplemute` appears in five places: `plugin/src/config.ts` (`PLUGIN_UUID`, used for the action UUIDs), `plugin/com.anamahmed.simplemute.sdPlugin/manifest.json` (`UUID` and both action `UUID`s), the folder name itself, `plugin/package.json` (the `watch`, `validate` and `pack` scripts), `plugin/rollup.config.mjs` (`sdPlugin`) and `plugin/scripts/make-icons.mjs` (`sdPlugin`). Rename the folder, update those references, rebuild and re-link.
+**Rename the plugin UUID.** `com.anamahmed.simplemute` appears in six places: `plugin/src/config.ts` (`PLUGIN_UUID`, used for the action UUIDs), `plugin/com.anamahmed.simplemute.sdPlugin/manifest.json` (`UUID` and both action `UUID`s), the folder name itself, `plugin/package.json` (the `watch`, `validate` and `pack` scripts), `plugin/rollup.config.mjs` (`sdPlugin`) and `plugin/scripts/make-icons.mjs` (`sdPlugin`). Rename the folder, update those references, rebuild and re-link.
 
 **Change the port.** The port appears in exactly two places: `BRIDGE_PORT` in `plugin/src/config.ts` and `PORT` in `extension/background.js`. Change both, rebuild the plugin and reload the extension.
 
