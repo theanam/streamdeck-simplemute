@@ -10,21 +10,31 @@ Copy for the Chrome Web Store and the Elgato Marketplace, plus the exact files t
 Lets a Stream Deck key mute your mic, camera and screen share in browser meetings. Companion to the SimpleMute Stream Deck plugin.
 
 **Description:**
-SimpleMute gives you one mute key for every browser-based meeting. Press a key on your Stream Deck and the extension finds the meeting running in your browser and mutes or unmutes it; the key shows the live state and which app it controls.
+One mute key for every browser meeting.
 
-This extension is the browser half of SimpleMute. It needs the SimpleMute Stream Deck plugin running in the Stream Deck app; on its own it does nothing. The two talk over localhost on your machine only.
+SimpleMute connects your Stream Deck to the meeting running in your browser. Press a key and it mutes or unmutes your microphone, turns your camera on or off, stops a screen share, or leaves the call. The keys show the live state, so a glance at your Stream Deck tells you whether you're muted, and a small label on each key names the app it is controlling.
 
-What it does
-- Mute and unmute the microphone, turn the camera on or off, stop a screen share, and leave the meeting, from Stream Deck keys.
-- Reports the meeting's state back to the plugin so the keys stay accurate, whichever side you click.
-- Works with Google Meet, the Zoom web client and Microsoft Teams web, in any Chrome profile.
+Works with
+• Google Meet
+• Zoom (web client)
+• Microsoft Teams (web)
+Any Chrome profile, with the key following the meeting you looked at last.
 
-What it does not do
-- No cloud service, no account, no analytics. It makes no network requests other than to 127.0.0.1.
-- It never touches your audio or video streams. It only clicks the meeting's own buttons, so the meeting always shows the true state.
-- It only runs on meeting pages (meet.google.com, *.zoom.us/wc, Teams web).
+This extension is the browser half of SimpleMute. It needs the free SimpleMute Stream Deck plugin running in the Stream Deck app; on its own it does nothing. Install both, drop the Mute key on your Stream Deck, and you're done.
 
-Requirements: Chrome 116 or newer and the SimpleMute Stream Deck plugin.
+Private by design
+• Everything stays on your computer. The extension talks only to the plugin over localhost (127.0.0.1).
+• No account, no cloud service, no analytics, no data collection.
+• It never touches your audio or video. It only clicks the meeting's own buttons, so the meeting always shows the true state.
+• It runs only on meeting pages.
+
+Requirements
+• Chrome 116 or newer (Edge, Brave and Arc work too)
+• Stream Deck app 7.1 or newer with the SimpleMute plugin
+
+Open source
+Code, setup guide and plugin download: https://github.com/YOUR-GITHUB-USER/streamdeck-simplemute
+Stream Deck plugin: Elgato Marketplace link coming soon.
 
 **Category:** Productivity → Tools. **Language:** English.
 
