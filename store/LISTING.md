@@ -90,6 +90,10 @@ Requirements: Stream Deck 7.1 or newer, Chrome 116 or newer (or Edge, Brave, Arc
 
 ## Release notes
 
+### 0.2.0 (2026-10-21)
+Port fallback: the plugin now uses the first free port of 51234 to 51237 and identifies itself to the extension, so another program on 51234 no longer blocks it. New toolbar popup shows connection status and what the keys are controlling, with a plugin download link and a retry button when the plugin is not reachable. Extension errors are kept out of the Chrome errors panel; a stopped plugin now exits cleanly.
+
+
 Newest first. Paste the matching entry into each store's release-notes field. `npm run release` adds entries here.
 
 ### 0.1.0 (2026-10-22)
