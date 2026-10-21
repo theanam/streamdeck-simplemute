@@ -48,7 +48,9 @@ Relays mute, camera, share and leave commands from the SimpleMute Stream Deck pl
 - Host permissions (meet.google.com, *.zoom.us/wc, teams.microsoft.com, teams.live.com, teams.cloud.microsoft): needed to read the mic/camera/share button state on meeting pages and click them.
 - Remote code: none. All code ships in the package.
 
-**Data usage disclosure:** the extension does not collect or transmit user data. Check "This item does not collect user data" in the dashboard. If the form insists on a privacy policy URL, point it at the repository README's privacy section.
+**Data usage disclosure:** the extension does not collect or transmit user data. Check "This item does not collect user data" in the dashboard.
+
+**Privacy policy URL:** https://github.com/theanam/streamdeck-simplemute/blob/main/PRIVACY.md
 
 **Files to upload:**
 - Package: `store/chrome/simplemute-extension.zip`
