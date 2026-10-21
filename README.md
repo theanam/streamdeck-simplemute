@@ -15,25 +15,59 @@ SimpleMute is two parts that talk to each other over localhost:
 
 ## Install
 
-**Requirements:** Stream Deck app 7.1 or newer on macOS 12+ or Windows 10+, and Chrome 116 or newer (or Edge, Brave, Arc).
+Neither part is in a store yet, so both are installed by hand from this repository. It takes about five minutes.
 
-### 1. Stream Deck plugin
+**Requirements:** Stream Deck app 7.1 or newer on macOS 12+ or Windows 10+; Chrome 116 or newer (Edge, Brave and Arc work too); Node.js 20 or newer and git to build the plugin.
 
-Download `co.anam.simplemute.streamDeckPlugin` from the [latest release](https://github.com/theanam/streamdeck-simplemute/releases) and double-click it. The Stream Deck app installs it and a **SimpleMute** category appears in the action list.
+### 1. Get the code
 
-### 2. Browser extension
+```sh
+git clone https://github.com/theanam/streamdeck-simplemute.git
+cd streamdeck-simplemute
+```
 
-Install it from the Chrome Web Store (link coming soon), or load it unpacked:
+### 2. Install the Stream Deck plugin
 
-1. Download or clone this repository.
-2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `extension/` folder.
-3. Repeat in every browser profile you use for meetings.
+Build it and link it into the Stream Deck app:
 
-The extension's toolbar icon shows a red `!` until it reaches the plugin, which normally takes a second or two with the Stream Deck app running.
+```sh
+cd plugin
+npm install
+npm run build
+npx streamdeck link co.anam.simplemute.sdPlugin
+```
 
-### 3. Add a key
+Then **quit and reopen the Stream Deck app** so it picks up the new plugin (it only scans for plugins at startup). A **SimpleMute** category with four actions appears in the action list on the right. The app downloads its own Node.js runtime for the plugin on first launch, which can take a few seconds.
 
-Drag **Mute** from the SimpleMute category onto a key. Join a meeting and the key turns green or red within a second.
+Alternative without linking: run `npm run pack` from the repository root and double-click `store/elgato/co.anam.simplemute.streamDeckPlugin`. The Stream Deck app installs a copy of it.
+
+### 3. Install the browser extension
+
+Load it unpacked, which is how Chrome runs extensions that are not from the store:
+
+1. Open `chrome://extensions` (in Edge `edge://extensions`, in Brave `brave://extensions`, in Arc `arc://extensions`).
+2. Turn on **Developer mode** with the switch in the top right.
+3. Click **Load unpacked** and choose the `extension/` folder inside the cloned repository.
+4. The SimpleMute icon appears in the toolbar. Click the puzzle-piece menu and pin it if you want to see its status badge.
+
+Repeat these steps in every browser profile you use for meetings; each profile keeps its own extension and its own connection.
+
+The badge on the icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. If the badge stays red, see [Troubleshooting](#troubleshooting).
+
+Do not move or delete the cloned folder afterwards: Chrome loads the extension from that location every time it starts.
+
+### 4. Add a key
+
+Drag **Mute** from the SimpleMute category onto a key. Join a meeting and the key turns green or red within a second. Add **Camera**, **Share Screen** and **Leave Meeting** the same way if you want them.
+
+### Updating
+
+```sh
+git pull
+cd plugin && npm install && npm run build && npx streamdeck restart co.anam.simplemute
+```
+
+Then reload the extension on `chrome://extensions` (the circular arrow on its card) in each profile. Open meeting tabs pick up the new version automatically. Run `npx streamdeck dev` once beforehand; the `restart` command is ignored by the Stream Deck app until its developer mode is on.
 
 ## Keys
 
@@ -108,14 +142,7 @@ SimpleMute collects nothing. The only network traffic is between the plugin and 
 
 ## Development
 
-```sh
-git clone https://github.com/theanam/streamdeck-simplemute.git
-cd streamdeck-simplemute
-npm install                  # test harness for the extension
-cd plugin && npm install && npm run build
-npx streamdeck link co.anam.simplemute.sdPlugin
-npx streamdeck dev           # enables the Stream Deck app's developer mode, needed for restart/stop
-```
+After the [Install](#install) steps, also run `npm install` in the repository root (test harness for the extension) and `npx streamdeck dev` once (enables the Stream Deck app's developer mode, which the CLI's `restart` and `stop` commands need).
 
 Useful scripts:
 
