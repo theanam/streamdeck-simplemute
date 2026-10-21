@@ -32,5 +32,28 @@
 		return { button, on };
 	}
 
-	sdmc.register({ site: "zoom", mic, camera });
+	/** Visible button whose label matches; Zoom's toolbar labels are English-only. */
+	function byLabel(re) {
+		return util.visible(document.querySelectorAll("button")).find((b) => re.test(util.label(b))) || null;
+	}
+
+	function share() {
+		const stop = byLabel(/stop shar/i);
+		if (stop) return { button: stop, on: true };
+		const start = byLabel(/share screen/i);
+		return start ? { button: start, on: false } : null;
+	}
+
+	function leave() {
+		const button = first("button.footer__leave-btn") || byLabel(/^(leave|end)$/i);
+		if (!button) return null;
+		// Zoom opens a popover asking to confirm; click "Leave Meeting" in it.
+		const confirm = () => {
+			const btn = first("button.leave-meeting-options__btn") || byLabel(/leave meeting/i);
+			if (btn) btn.click();
+		};
+		return { button, confirm };
+	}
+
+	sdmc.register({ site: "zoom", mic, camera, share, leave });
 })();

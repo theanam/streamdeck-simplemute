@@ -118,6 +118,13 @@ describe("background service worker", () => {
 		expect(mock.chrome.tabs.sendMessage).toHaveBeenCalledWith(7, { type: "sdmc:command", action: "toggle", kind: "camera" }, { frameId: 0 });
 	});
 
+	it("forwards share state and leave commands", async () => {
+		contentState(8, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on", share: "on" });
+		await waitFor(() => bridge.status.share === "on", "share state");
+		await expect(bridge.leave()).resolves.toBe(true);
+		expect(mock.chrome.tabs.sendMessage).toHaveBeenLastCalledWith(8, { type: "sdmc:command", action: "leave", kind: "leave" }, { frameId: 0 });
+	});
+
 	it("reports ok: false when the content script is unreachable", async () => {
 		contentState(7, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on" });
 		await waitFor(() => bridge.status.inMeeting);

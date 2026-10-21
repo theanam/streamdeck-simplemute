@@ -1,5 +1,12 @@
 // SimpleMute content-script runtime shared by all site adapters.
-// Polls the adapter for mic/camera state, reports changes to the service worker, and clicks on command.
+// Polls the adapter for mic/camera/share state, reports changes to the service worker, and clicks on command.
+//
+// Adapter interface (register it with `globalThis.__sdmc.register(adapter)`):
+//   site:     "meet" | "zoom" | "teams"
+//   mic():    { button, on } | null      on: true (live), false (muted), null (unreadable)
+//   camera(): { button, on } | null
+//   share():  { button, on } | null      optional; on: true while sharing
+//   leave():  { button, confirm? } | null optional; confirm() clicks a confirmation popover if the site shows one
 (() => {
 	if (globalThis.__sdmc) return; // already injected into this frame
 
@@ -7,6 +14,7 @@
 	const POLL_MS = 400;
 	const HEARTBEAT_MS = 3_000;
 	const POST_CLICK_POLL_MS = 150;
+	const CONFIRM_DELAY_MS = 300;
 
 	const util = {
 		/** aria-label of `el`, else its data-tooltip, else the first descendant's aria-label. */
@@ -57,11 +65,13 @@
 	function readState() {
 		const mic = safe(() => adapter.mic());
 		const camera = safe(() => adapter.camera());
+		const share = adapter.share ? safe(() => adapter.share()) : null;
 		return {
 			site: adapter.site,
 			inMeeting: !!(mic || camera),
 			mic: deviceState(mic),
 			camera: deviceState(camera),
+			share: deviceState(share),
 		};
 	}
 
@@ -95,15 +105,42 @@
 		}
 	}
 
+	const TOGGLE_KINDS = ["mic", "camera", "share"];
+
 	function onCommand(msg, sender, respond) {
 		if (!msg || msg.type !== "sdmc:command" || !adapter) return false;
+
+		if (msg.action === "leave") {
+			if (typeof adapter.leave !== "function") {
+				respond({ ok: false, error: "leave not supported on this site" });
+				return false;
+			}
+			const found = safe(() => adapter.leave());
+			if (!found || !found.button) {
+				respond({ ok: false, error: "leave control not found" });
+				return false;
+			}
+			found.button.click();
+			// Some sites ask "Leave meeting?" in a popover; give the adapter a chance to confirm.
+			if (typeof found.confirm === "function") {
+				setTimeout(() => safe(() => found.confirm()), CONFIRM_DELAY_MS);
+			}
+			respond({ ok: true });
+			setTimeout(poll, POST_CLICK_POLL_MS);
+			return false;
+		}
+
 		if (msg.action !== "toggle") {
 			respond({ ok: false, error: `unsupported action ${msg.action}` });
 			return false;
 		}
-		const kind = msg.kind === "camera" ? "camera" : msg.kind === "mic" ? "mic" : null;
+		const kind = TOGGLE_KINDS.includes(msg.kind) ? msg.kind : null;
 		if (!kind) {
 			respond({ ok: false, error: `unsupported kind ${msg.kind}` });
+			return false;
+		}
+		if (typeof adapter[kind] !== "function") {
+			respond({ ok: false, error: `${kind} not supported on this site` });
 			return false;
 		}
 		const found = safe(() => adapter[kind]());

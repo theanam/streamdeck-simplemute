@@ -1,6 +1,6 @@
 # SimpleMute for Stream Deck
 
-A generic mute button for browser-based meetings. SimpleMute lets a Stream Deck key toggle your microphone and camera in whatever conferencing site is open in your browser, with key icons that show the live state. It is two pieces: a Stream Deck plugin that runs inside the Stream Deck app and hosts a tiny WebSocket server on localhost, and a browser extension whose service worker connects to that server and relays commands to a content script in the meeting tab. There is no desktop companion app, no cloud service and no data collection.
+A generic mute button for browser-based meetings. SimpleMute lets a Stream Deck key toggle your microphone, camera and screen share, or leave the call, in whatever conferencing site is open in your browser. Key icons show the live state and a small pill naming the site they control. When no meeting is running, the Mute key mutes your Mac's default microphone instead. It is two pieces: a Stream Deck plugin that runs inside the Stream Deck app and hosts a tiny WebSocket server on localhost, and a browser extension whose service worker connects to that server and relays commands to a content script in the meeting tab. There is no desktop companion app, no cloud service and no data collection.
 
 Sites are supported through small adapters, one file each, so adding another conferencing service means adding one adapter. Adapters ship for Google Meet, the Zoom web client and Microsoft Teams web (see [Known limitations](#known-limitations)).
 
@@ -52,14 +52,27 @@ Repeat step 2 in every Chrome profile you use for meetings. Each profile runs it
 
 Tabs already open on Meet, Zoom or Teams get the content script injected when the extension installs or updates, so there is no need to reload them.
 
+## Keys
+
+| Key | What it does |
+| --- | --- |
+| **Mute** | Toggles the microphone of the meeting running in your browser. With no meeting open, it mutes or unmutes the operating system's default input instead (macOS only; the key shows a SYSTEM pill). |
+| **Camera** | Toggles the meeting's camera. |
+| **Share Screen** | Stops an active screen share. When not sharing it clicks the site's share control; see the limitation below. |
+| **Leave Meeting** | Leaves the meeting with a single press. Where the site asks for confirmation (Zoom), the adapter confirms it. |
+
 ## What the key colors mean
 
 | Key | Meaning |
 | --- | --- |
-| Green, no slash | A meeting was found and the mic or camera is live. Press to mute / turn off. |
-| Red, slashed | A meeting was found and the mic is muted or the camera is off. Press to unmute / turn on. |
+| Green, no slash, site pill | A meeting was found and the device is live. Press to mute / turn off. |
+| Red, slashed, site pill | A meeting was found and the device is muted or off. Press to unmute / turn on. |
+| Red handset, site pill | Leave key while in a meeting. |
+| Green or red with SYSTEM pill | Mute key with no meeting open, showing the OS input state. An orange dot means the extension is not connected. |
 | Grey, slashed | The extension is connected but no meeting is open, or the button state could not be read. Pressing shows an alert. |
 | Dark grey, slashed, orange dot | No extension is connected (Chrome closed, extension disabled, or the plugin cannot bind its port). Pressing shows an alert. |
+
+The pill names the site the key is acting on: MEET, ZOOM or TEAMS.
 
 If you set a custom image on a key in the Stream Deck app, Stream Deck ignores the plugin's images and the key no longer reflects the state. Remove the custom image to restore it.
 
@@ -70,9 +83,9 @@ All traffic is JSON text frames over `ws://127.0.0.1:51234`. The extension is th
 | Direction | Type | Fields | When |
 | --- | --- | --- | --- |
 | ext → plugin | `hello` | `version`, `clientId` (random UUID persisted per Chrome profile) | Right after connecting |
-| ext → plugin | `state` | `inMeeting`, `site` (`"meet"`, `"zoom"`, `"teams"` or null), `mic` and `camera` (`"on"`, `"off"`, `"unknown"`), `focused` | On connect and whenever the target meeting's state changes |
+| ext → plugin | `state` | `inMeeting`, `site` (`"meet"`, `"zoom"`, `"teams"` or null), `mic`, `camera` and `share` (`"on"`, `"off"`, `"unknown"`), `focused` | On connect and whenever the target meeting's state changes |
 | ext → plugin | `ping` | none | Every 20 s (keeps the MV3 service worker alive) |
-| plugin → ext | `command` | `id`, `action` (`"toggle"`), `kind` (`"mic"` or `"camera"`) | On key press |
+| plugin → ext | `command` | `id`, `action` (`"toggle"` or `"leave"`), `kind` (`"mic"`, `"camera"`, `"share"` or `"leave"`) | On key press |
 | ext → plugin | `result` | `id`, `ok`, `error` (optional) | After handling a command |
 
 A `state` always describes one meeting: the one the extension would act on, which is the in-meeting tab the user focused or joined most recently. `result.ok` means the button was found and clicked; the new state arrives separately as a `state` message. When several profiles are connected, the plugin prefers clients that are in a meeting and, among those, the one that most recently entered a meeting or reported `focused: true`. Commands go to that one client only.
@@ -91,7 +104,7 @@ Meeting sites change their markup now and then. Each site lives in one file unde
 
 1. Open the meeting in Chrome, open DevTools (F12) and switch to the **Console**. Choose the extension's context in the dropdown at the top of the console (it is named after the extension) and look for `[SimpleMute] state` lines; `inMeeting: false` on a live call means the adapter found no controls.
 2. In the **Elements** tab, use the picker to select the mic button. Note a stable attribute: on Meet it is `data-is-muted` plus an `aria-label` ending in the keyboard shortcut; on Zoom a class name such as `join-audio-container__btn`; on Teams the `id` and `data-state`.
-3. Edit the matching file (`meet.js`, `zoom.js` or `teams.js`). Each adapter exposes `mic()` and `camera()` that return `{ button, on }` or `null`. Use `util.visible()` so hidden duplicates are skipped and `util.label()` to read the accessible label.
+3. Edit the matching file (`meet.js`, `zoom.js` or `teams.js`). Each adapter exposes `mic()`, `camera()` and `share()` that return `{ button, on }` or `null`, and `leave()` that returns `{ button, confirm? }` or `null`. Use `util.visible()` so hidden duplicates are skipped and `util.label()` to read the accessible label. On Meet, share and leave are found by the Material icon name inside the button (`present_to_all`, `cancel_presentation`, `call_end`), which does not change with the UI language.
 4. Add or update a fixture in `extension/test/<site>.test.js` with the new markup, run `npm test` at the repository root, then reload the extension on `chrome://extensions`.
 
 ## Development
@@ -111,7 +124,8 @@ plugin/                      Stream Deck plugin (TypeScript, @elgato/streamdeck 
   src/config.ts              port, origin allowlist, timeouts, plugin UUID
   src/bridge.ts              WebSocket server and client tracking (no SDK imports; unit-tested)
   src/icons.ts               key image loader
-  src/actions/media-toggle.ts  ToggleMic / ToggleCamera
+  src/system-mic.ts          OS default-input mute (macOS via osascript)
+  src/actions/media-toggle.ts  Mute, Camera, Share Screen, Leave Meeting keys
   scripts/make-icons.mjs     renders every PNG from SVG
   test/bridge.test.ts        bridge tests with real ws clients
   co.anam.simplemute.sdPlugin/   manifest, built bin/plugin.js, generated imgs/
@@ -126,7 +140,10 @@ extension/                   Chrome extension (Manifest V3, plain JavaScript, no
 
 - Native desktop apps (Zoom desktop, Teams desktop) are not supported; only the browser clients are.
 - Zoom's button labels are matched in English only. Meet works in any language because it matches on the keyboard shortcut in the label. Teams support is experimental.
-- Only toggle mic and toggle camera exist. No leave call, raise hand or screen share; no Stream Deck+ dial support; no settings UI.
+- **Starting a screen share from a key is limited by the browser.** Chrome only opens the screen picker from a real click or key press inside the page, and a Stream Deck press is not one. The Share Screen key clicks the site's share control, which on some sites opens the picker and on others is ignored. Stopping a share always works.
+- **System mic fallback is macOS only.** It uses the system input volume (mute sets it to 0 and unmute restores the previous level), so it affects every app. Windows and Linux show the idle icon when no meeting is running.
+- Leave Meeting leaves on a single press with no confirmation from the Stream Deck side.
+- No raise hand, no Stream Deck+ dial support, no settings UI.
 - A key press acts on exactly one meeting: the one focused or joined most recently. There is no way to pin a key to a particular tab or profile.
 - Content scripts only read button attributes and call `click()`. They never touch media streams, so the meeting UI always shows the true state, but the key can lag the real state by up to the 400 ms poll interval.
 - Stream Deck ignores `setImage` on keys that have a user-set custom image.

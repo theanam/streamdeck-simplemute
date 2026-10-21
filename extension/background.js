@@ -20,7 +20,7 @@ let pingTimer = null;
 let clientId = null;
 let lastSentState = null;
 
-/** Frame registry keyed by "tabId:frameId". */
+/** Frame registry keyed by "tabId:frameId": site, inMeeting, mic, camera, share, seenAt, joinedAt. */
 const frames = new Map();
 /** Last time each tab was focused, by tabId. */
 const tabFocus = new Map();
@@ -168,7 +168,7 @@ function pickTarget() {
 function currentState() {
 	const target = pickTarget();
 	if (!target) {
-		return { type: "state", inMeeting: false, site: null, mic: "unknown", camera: "unknown", focused: false };
+		return { type: "state", inMeeting: false, site: null, mic: "unknown", camera: "unknown", share: "unknown", focused: false };
 	}
 	return {
 		type: "state",
@@ -176,6 +176,7 @@ function currentState() {
 		site: target.site,
 		mic: target.mic,
 		camera: target.camera,
+		share: target.share,
 		focused: windowFocused && focusedTabId === target.tabId,
 	};
 }
@@ -235,6 +236,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 		inMeeting,
 		mic: normalizeDevice(msg.mic),
 		camera: normalizeDevice(msg.camera),
+		share: normalizeDevice(msg.share),
 		seenAt: now,
 		joinedAt: inMeeting ? (previous && previous.inMeeting ? previous.joinedAt : now) : null,
 	});

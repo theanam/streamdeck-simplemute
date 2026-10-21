@@ -50,6 +50,21 @@ describe("Teams adapter", () => {
 		expect(lastState(chromeMock.sent)).toMatchObject({ mic: "on", camera: "off" });
 	});
 
+	it("reads share state and clicks share and hang up", () => {
+		document.body.innerHTML = `
+			<button id="microphone-button" data-state="mic"></button>
+			<button id="video-button" data-state="call-video"></button>
+			<button id="share-button" aria-label="Stop sharing"></button>
+			<button id="hangup-button" aria-label="Leave"></button>`;
+		const clicks = [];
+		for (const id of ["share-button", "hangup-button"]) document.getElementById(id).addEventListener("click", () => clicks.push(id));
+		loadSite("teams");
+		expect(lastState(chromeMock.sent)).toMatchObject({ share: "on" });
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "toggle", kind: "share" })).toEqual({ ok: true });
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "leave" })).toEqual({ ok: true });
+		expect(clicks).toEqual(["share-button", "hangup-button"]);
+	});
+
 	it("reports inMeeting: false on a page without controls", () => {
 		document.body.innerHTML = `<div id="chat">Hello</div>`;
 		loadSite("teams");

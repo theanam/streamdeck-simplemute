@@ -65,7 +65,7 @@ async function hello(id: string, origin?: string): Promise<TestClient> {
 }
 
 function state(c: TestClient, overrides: Record<string, unknown> = {}): void {
-	c.send({ type: "state", inMeeting: true, site: "meet", mic: "on", camera: "off", focused: false, ...overrides });
+	c.send({ type: "state", inMeeting: true, site: "meet", mic: "on", camera: "off", share: "off", focused: false, ...overrides });
 }
 
 /** Resolves when `predicate` becomes true, polling; fails after 2 s. */
@@ -137,9 +137,9 @@ describe("Bridge connections", () => {
 	it("resets status on disconnect", async () => {
 		const a = await hello("a");
 		state(a);
-		await waitForStatus({ connected: true, inMeeting: true, mic: "on", camera: "off", site: "meet" });
+		await waitForStatus({ connected: true, inMeeting: true, mic: "on", camera: "off", share: "off", site: "meet" });
 		await a.close();
-		await waitForStatus({ connected: false, inMeeting: false, mic: "unknown", camera: "unknown", site: null });
+		await waitForStatus({ connected: false, inMeeting: false, mic: "unknown", camera: "unknown", share: "unknown", site: null });
 	});
 
 	it("does not emit change for identical states", async () => {
@@ -199,6 +199,25 @@ describe("Bridge.toggle", () => {
 		expect(seen).toHaveLength(1);
 		expect(seen[0]).toMatchObject({ type: "command", action: "toggle", kind: "camera" });
 		expect(typeof seen[0].id).toBe("string");
+	});
+
+	it("sends share toggles and leave commands", async () => {
+		const a = await hello("a");
+		const seen = answerCommands(a, true);
+		state(a, { share: "on" });
+		await waitForStatus({ inMeeting: true, share: "on" });
+		await expect(bridge.toggle("share")).resolves.toBe(true);
+		await expect(bridge.leave()).resolves.toBe(true);
+		expect(seen.map((m) => [m.action, m.kind])).toEqual([
+			["toggle", "share"],
+			["leave", "leave"],
+		]);
+	});
+
+	it("returns false from leave when there is no meeting", async () => {
+		await hello("a");
+		await waitForStatus({ connected: true });
+		await expect(bridge.leave()).resolves.toBe(false);
 	});
 
 	it("returns false when the client answers ok: false", async () => {

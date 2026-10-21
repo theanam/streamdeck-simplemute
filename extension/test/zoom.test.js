@@ -53,6 +53,28 @@ describe("Zoom adapter", () => {
 		expect(lastState(chromeMock.sent)).toMatchObject({ mic: "off", camera: "off" });
 	});
 
+	it("shares and leaves, confirming Zoom's leave popover", () => {
+		page("mute my microphone", "stop my video");
+		document.body.insertAdjacentHTML(
+			"beforeend",
+			`<button id="share" aria-label="Share Screen"></button>
+			 <button id="leave" class="footer__leave-btn" aria-label="Leave"></button>`,
+		);
+		const clicks = [];
+		document.getElementById("share").addEventListener("click", () => clicks.push("share"));
+		document.getElementById("leave").addEventListener("click", () => {
+			clicks.push("leave");
+			document.body.insertAdjacentHTML("beforeend", `<button id="confirm" class="leave-meeting-options__btn">Leave Meeting</button>`);
+			document.getElementById("confirm").addEventListener("click", () => clicks.push("confirm"));
+		});
+		loadSite("zoom");
+		expect(lastState(chromeMock.sent)).toMatchObject({ share: "off" });
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "toggle", kind: "share" })).toEqual({ ok: true });
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "leave" })).toEqual({ ok: true });
+		vi.advanceTimersByTime(400);
+		expect(clicks).toEqual(["share", "leave", "confirm"]);
+	});
+
 	it("reports inMeeting: false on a page without controls", () => {
 		document.body.innerHTML = `<p>Launching Zoom…</p>`;
 		loadSite("zoom");

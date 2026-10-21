@@ -18,7 +18,9 @@ import {
 	isAllowedOrigin,
 } from "./config";
 
-export type Kind = "mic" | "camera";
+/** Controls a key can act on. `mic`, `camera` and `share` toggle; `leave` ends the meeting. */
+export type Kind = "mic" | "camera" | "share" | "leave";
+export type ToggleKind = Exclude<Kind, "leave">;
 export type DeviceState = "on" | "off" | "unknown";
 export type Site = "meet" | "zoom" | "teams" | null;
 
@@ -28,6 +30,7 @@ export type MeetingState = {
 	site: Site;
 	mic: DeviceState;
 	camera: DeviceState;
+	share: DeviceState;
 	focused: boolean;
 };
 
@@ -38,6 +41,7 @@ export type BridgeStatus = {
 	site: Site;
 	mic: DeviceState;
 	camera: DeviceState;
+	share: DeviceState;
 };
 
 /** Minimal logger so the bridge can take the SDK logger without importing it. */
@@ -72,8 +76,8 @@ type Pending = {
 	timer: NodeJS.Timeout;
 };
 
-const NO_MEETING: MeetingState = { inMeeting: false, site: null, mic: "unknown", camera: "unknown", focused: false };
-const DISCONNECTED: BridgeStatus = { connected: false, inMeeting: false, site: null, mic: "unknown", camera: "unknown" };
+const NO_MEETING: MeetingState = { inMeeting: false, site: null, mic: "unknown", camera: "unknown", share: "unknown", focused: false };
+const DISCONNECTED: BridgeStatus = { connected: false, inMeeting: false, site: null, mic: "unknown", camera: "unknown", share: "unknown" };
 
 const silentLogger: BridgeLogger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -184,15 +188,24 @@ export class Bridge extends EventEmitter {
 	 * Sends a toggle command to the target client. Resolves `false` immediately when there is no client
 	 * or no meeting, with the client's `result.ok` otherwise, or `false` after the command timeout.
 	 */
-	toggle(kind: Kind): Promise<boolean> {
+	toggle(kind: ToggleKind): Promise<boolean> {
+		return this.#command("toggle", kind);
+	}
+
+	/** Asks the target client to leave its meeting. Same resolution rules as {@link toggle}. */
+	leave(): Promise<boolean> {
+		return this.#command("leave", "leave");
+	}
+
+	#command(action: "toggle" | "leave", kind: Kind): Promise<boolean> {
 		const target = this.#pickTarget();
 		if (!target || !target.state.inMeeting) {
-			this.#log.info(`toggle ${kind}: no target meeting (clients: ${this.#clients.size})`);
+			this.#log.info(`${action} ${kind}: no target meeting (clients: ${this.#clients.size})`);
 			return Promise.resolve(false);
 		}
 
 		const id = String(++this.#commandSeq);
-		this.#log.info(`toggle ${kind}: command ${id} -> client ${describe(target)}`);
+		this.#log.info(`${action} ${kind}: command ${id} -> client ${describe(target)}`);
 
 		return new Promise<boolean>((resolve) => {
 			const timer = setTimeout(() => {
@@ -201,7 +214,7 @@ export class Bridge extends EventEmitter {
 				resolve(false);
 			}, this.#commandTimeoutMs);
 			this.#pending.set(id, { client: target, resolve, timer });
-			this.#send(target, { type: "command", id, action: "toggle", kind });
+			this.#send(target, { type: "command", id, action, kind });
 		});
 	}
 
@@ -303,7 +316,7 @@ export class Bridge extends EventEmitter {
 		}
 
 		this.#log.debug(
-			`state from ${describe(client)}: inMeeting=${next.inMeeting} site=${next.site} mic=${next.mic} camera=${next.camera} focused=${next.focused}`,
+			`state from ${describe(client)}: inMeeting=${next.inMeeting} site=${next.site} mic=${next.mic} camera=${next.camera} share=${next.share} focused=${next.focused}`,
 		);
 		this.#updateStatus();
 	}
@@ -358,8 +371,8 @@ export class Bridge extends EventEmitter {
 		if (!target) {
 			return DISCONNECTED;
 		}
-		const { inMeeting, site, mic, camera } = target.state;
-		return inMeeting ? { connected: true, inMeeting, site, mic, camera } : { ...DISCONNECTED, connected: true };
+		const { inMeeting, site, mic, camera, share } = target.state;
+		return inMeeting ? { connected: true, inMeeting, site, mic, camera, share } : { ...DISCONNECTED, connected: true };
 	}
 
 	#updateStatus(): void {
@@ -370,7 +383,7 @@ export class Bridge extends EventEmitter {
 		this.#status = next;
 		const target = this.#pickTarget();
 		this.#log.info(
-			`status: connected=${next.connected} inMeeting=${next.inMeeting} site=${next.site} mic=${next.mic} camera=${next.camera}` +
+			`status: connected=${next.connected} inMeeting=${next.inMeeting} site=${next.site} mic=${next.mic} camera=${next.camera} share=${next.share}` +
 				(target ? ` target=${describe(target)}` : ""),
 		);
 		this.emit("change", next);
@@ -423,12 +436,20 @@ export function parseState(msg: Record<string, unknown>): MeetingState {
 		site: inMeeting ? parseSite(msg.site) : null,
 		mic: inMeeting ? parseDevice(msg.mic) : "unknown",
 		camera: inMeeting ? parseDevice(msg.camera) : "unknown",
+		share: inMeeting ? parseDevice(msg.share) : "unknown",
 		focused: msg.focused === true,
 	};
 }
 
 function sameStatus(a: BridgeStatus, b: BridgeStatus): boolean {
-	return a.connected === b.connected && a.inMeeting === b.inMeeting && a.site === b.site && a.mic === b.mic && a.camera === b.camera;
+	return (
+		a.connected === b.connected &&
+		a.inMeeting === b.inMeeting &&
+		a.site === b.site &&
+		a.mic === b.mic &&
+		a.camera === b.camera &&
+		a.share === b.share
+	);
 }
 
 function describe(client: Client): string {

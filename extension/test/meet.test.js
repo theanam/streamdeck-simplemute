@@ -83,6 +83,39 @@ describe("Meet adapter", () => {
 	it("reports inMeeting: false on a page without controls", () => {
 		document.body.innerHTML = `<h1>Meet landing page</h1><button aria-label="New meeting"></button>`;
 		loadSite("meet");
-		expect(lastState(chromeMock.sent)).toEqual({ type: "sdmc:state", site: "meet", inMeeting: false, mic: "unknown", camera: "unknown" });
+		expect(lastState(chromeMock.sent)).toEqual({ type: "sdmc:state", site: "meet", inMeeting: false, mic: "unknown", camera: "unknown", share: "unknown" });
+	});
+
+	it("finds share and leave by Material icon ligature regardless of language", () => {
+		document.body.innerHTML = `
+			${GERMAN}
+			<button id="share"><i class="google-symbols">present_to_all</i></button>
+			<button id="leave" aria-label="Anruf verlassen"><i class="google-symbols">call_end</i></button>`;
+		loadSite("meet");
+		expect(lastState(chromeMock.sent)).toMatchObject({ inMeeting: true, share: "off" });
+		let clicked = null;
+		for (const id of ["share", "leave"]) document.getElementById(id).addEventListener("click", () => (clicked = id));
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "toggle", kind: "share" })).toEqual({ ok: true });
+		expect(clicked).toBe("share");
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "leave" })).toEqual({ ok: true });
+		expect(clicked).toBe("leave");
+	});
+
+	it("reports share on while presenting and stops it on toggle", () => {
+		document.body.innerHTML = `
+			${ENGLISH}
+			<button id="stop" aria-label="Stop presenting"><i>cancel_presentation</i></button>`;
+		let clicked = null;
+		document.getElementById("stop").addEventListener("click", () => (clicked = "stop"));
+		loadSite("meet");
+		expect(lastState(chromeMock.sent)).toMatchObject({ share: "on" });
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "toggle", kind: "share" })).toEqual({ ok: true });
+		expect(clicked).toBe("stop");
+	});
+
+	it("answers leave with an error when no leave button exists (pre-join screen)", () => {
+		document.body.innerHTML = ENGLISH;
+		loadSite("meet");
+		expect(chromeMock.dispatch({ type: "sdmc:command", action: "leave" })).toEqual({ ok: false, error: "leave control not found" });
 	});
 });

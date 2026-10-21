@@ -7,7 +7,7 @@
 			"Name": "Mute",
 			"UUID": "co.anam.simplemute.mic",
 			"Icon": "imgs/actions/mic/icon",
-			"Tooltip": "One mute key. Detects the meeting running in your browser and mutes or unmutes your microphone. The key shows live state.",
+			"Tooltip": "One mute key. Detects the meeting running in your browser and mutes or unmutes your microphone. With no meeting open it mutes the system's default input (macOS). The key shows live state and which app it controls.",
 			"Controllers": [
 				"Keypad"
 			],
@@ -29,6 +29,36 @@
 			"States": [
 				{
 					"Image": "imgs/actions/camera/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Share Screen",
+			"UUID": "co.anam.simplemute.share",
+			"Icon": "imgs/actions/share/icon",
+			"Tooltip": "Stops an active screen share, or opens the meeting's share control. The key shows whether you are sharing.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/share/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Leave Meeting",
+			"UUID": "co.anam.simplemute.leave",
+			"Icon": "imgs/actions/leave/icon",
+			"Tooltip": "Leaves the meeting running in your browser. Single press, no confirmation.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/leave/key",
 					"ShowTitle": false
 				}
 			]
