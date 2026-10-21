@@ -33,10 +33,10 @@ Stream Deck app ──launches──▶ Plugin (Node.js, @elgato/streamdeck)
 cd plugin
 npm install
 npm run build
-npx streamdeck link com.anamahmed.simplemute.sdPlugin
+npx streamdeck link co.anam.simplemute.sdPlugin
 ```
 
-`link` creates a symlink in the Stream Deck plugins folder. Restart the Stream Deck app (or run `npx streamdeck restart com.anamahmed.simplemute`) and a **SimpleMute** category with *Toggle Microphone* and *Toggle Camera* appears in the action list. Drag either onto a key. A built `bin/plugin.js` is committed, so `npm run build` is only required after changing the source.
+`link` creates a symlink in the Stream Deck plugins folder. Restart the Stream Deck app (or run `npx streamdeck restart co.anam.simplemute`) and a **SimpleMute** category with *Toggle Microphone* and *Toggle Camera* appears in the action list. Drag either onto a key. A built `bin/plugin.js` is committed, so `npm run build` is only required after changing the source.
 
 Other scripts in `plugin/`: `npm run typecheck`, `npm run validate` (manifest and layout checks), `npm run pack` (creates a `.streamDeckPlugin` installer), `npm run icons` (regenerates every PNG), `npm run watch` (rebuild and restart on change), `npm test`.
 
@@ -77,7 +77,7 @@ A `state` always describes one meeting: the one the extension would act on, whic
 
 ## Customizing
 
-**Rename the plugin UUID.** `com.anamahmed.simplemute` appears in six places: `plugin/src/config.ts` (`PLUGIN_UUID`, used for the action UUIDs), `plugin/com.anamahmed.simplemute.sdPlugin/manifest.json` (`UUID` and both action `UUID`s), the folder name itself, `plugin/package.json` (the `watch`, `validate` and `pack` scripts), `plugin/rollup.config.mjs` (`sdPlugin`) and `plugin/scripts/make-icons.mjs` (`sdPlugin`). Rename the folder, update those references, rebuild and re-link.
+**Rename the plugin UUID.** `co.anam.simplemute` appears in six places: `plugin/src/config.ts` (`PLUGIN_UUID`, used for the action UUIDs), `plugin/co.anam.simplemute.sdPlugin/manifest.json` (`UUID` and both action `UUID`s), the folder name itself, `plugin/package.json` (the `watch`, `validate` and `pack` scripts), `plugin/rollup.config.mjs` (`sdPlugin`) and `plugin/scripts/make-icons.mjs` (`sdPlugin`). Rename the folder, update those references, rebuild and re-link.
 
 **Change the port.** The port appears in exactly two places: `BRIDGE_PORT` in `plugin/src/config.ts` and `PORT` in `extension/background.js`. Change both, rebuild the plugin and reload the extension.
 
@@ -112,7 +112,7 @@ plugin/                      Stream Deck plugin (TypeScript, @elgato/streamdeck 
   src/actions/media-toggle.ts  ToggleMic / ToggleCamera
   scripts/make-icons.mjs     renders every PNG from SVG
   test/bridge.test.ts        bridge tests with real ws clients
-  com.anamahmed.simplemute.sdPlugin/   manifest, built bin/plugin.js, generated imgs/
+  co.anam.simplemute.sdPlugin/   manifest, built bin/plugin.js, generated imgs/
 extension/                   Chrome extension (Manifest V3, plain JavaScript, no build step)
   background.js              service worker: connection, frame registry, focus, command relay
   content/common.js          shared content-script runtime

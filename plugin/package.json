@@ -6,10 +6,10 @@
 	"type": "module",
 	"scripts": {
 		"build": "rollup -c",
-		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.anamahmed.simplemute\"",
+		"watch": "rollup -c -w --watch.onEnd=\"streamdeck restart co.anam.simplemute\"",
 		"typecheck": "tsc --noEmit",
-		"validate": "streamdeck validate com.anamahmed.simplemute.sdPlugin",
-		"pack": "streamdeck pack com.anamahmed.simplemute.sdPlugin",
+		"validate": "streamdeck validate co.anam.simplemute.sdPlugin",
+		"pack": "streamdeck pack co.anam.simplemute.sdPlugin",
 		"icons": "node scripts/make-icons.mjs",
 		"test": "vitest run"
 	},

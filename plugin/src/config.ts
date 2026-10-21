@@ -4,7 +4,7 @@
  */
 
 /** Plugin UUID. Must match `UUID` and the action UUIDs in manifest.json and the folder name `<UUID>.sdPlugin`. */
-export const PLUGIN_UUID = "com.anamahmed.simplemute";
+export const PLUGIN_UUID = "co.anam.simplemute";
 
 /** Interface the bridge binds to. Keep this on loopback; never use 0.0.0.0. */
 export const BRIDGE_HOST = "127.0.0.1";

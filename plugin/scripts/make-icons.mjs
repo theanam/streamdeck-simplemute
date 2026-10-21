@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pluginDir = path.resolve(here, "..");
 const repoDir = path.resolve(pluginDir, "..");
-const sdPlugin = path.join(pluginDir, "com.anamahmed.simplemute.sdPlugin");
+const sdPlugin = path.join(pluginDir, "co.anam.simplemute.sdPlugin");
 const imgs = path.join(sdPlugin, "imgs");
 const extIcons = path.join(repoDir, "extension", "icons");
 

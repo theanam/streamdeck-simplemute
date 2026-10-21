@@ -5,7 +5,7 @@
 	"Actions": [
 		{
 			"Name": "Toggle Microphone",
-			"UUID": "com.anamahmed.simplemute.mic",
+			"UUID": "co.anam.simplemute.mic",
 			"Icon": "imgs/actions/mic/icon",
 			"Tooltip": "Mutes or unmutes the microphone in the active Meet, Zoom or Teams web meeting.",
 			"Controllers": [
@@ -20,7 +20,7 @@
 		},
 		{
 			"Name": "Toggle Camera",
-			"UUID": "com.anamahmed.simplemute.camera",
+			"UUID": "co.anam.simplemute.camera",
 			"Icon": "imgs/actions/camera/icon",
 			"Tooltip": "Turns the camera on or off in the active Meet, Zoom or Teams web meeting.",
 			"Controllers": [
@@ -57,5 +57,5 @@
 		"Version": "24",
 		"Debug": "enabled"
 	},
-	"UUID": "com.anamahmed.simplemute"
+	"UUID": "co.anam.simplemute"
 }

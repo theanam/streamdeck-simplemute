@@ -6,7 +6,7 @@ import path from "node:path";
 import url from "node:url";
 
 const isWatching = !!process.env.ROLLUP_WATCH;
-const sdPlugin = "com.anamahmed.simplemute.sdPlugin";
+const sdPlugin = "co.anam.simplemute.sdPlugin";
 
 /**
  * @type {import('rollup').RollupOptions}
