@@ -128,6 +128,12 @@ describe("Bridge connections", () => {
 		await expect(connect(null)).rejects.toThrow(/401/);
 	});
 
+	it("answers a plain HTTP probe with 426 so the extension can check reachability silently", async () => {
+		const res = await fetch(`http://127.0.0.1:${bridge.port}/`);
+		expect(res.status).toBe(426);
+		expect(res.headers.get("connection")).toBe("close");
+	});
+
 	it("accepts an extension origin and reports connected", async () => {
 		expect(bridge.status.connected).toBe(false);
 		await hello("a");

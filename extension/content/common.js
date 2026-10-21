@@ -83,6 +83,16 @@
 	}
 
 	function poll() {
+		try {
+			pollOnce();
+		} catch (err) {
+			// Never let a page quirk or a dead extension context surface as an error; the next tick retries.
+			console.debug(LOG, "poll failed", err);
+			if (!alive()) stop();
+		}
+	}
+
+	function pollOnce() {
 		if (!alive()) {
 			// The extension was reloaded or removed; this copy is orphaned.
 			stop();
@@ -109,7 +119,20 @@
 
 	function onCommand(msg, sender, respond) {
 		if (!msg || msg.type !== "sdmc:command" || !adapter) return false;
+		try {
+			return handleCommand(msg, respond);
+		} catch (err) {
+			console.debug(LOG, "command failed", err);
+			try {
+				respond({ ok: false, error: `content script error: ${err && err.message ? err.message : err}` });
+			} catch {
+				// channel already closed
+			}
+			return false;
+		}
+	}
 
+	function handleCommand(msg, respond) {
 		if (msg.action === "leave") {
 			if (typeof adapter.leave !== "function") {
 				respond({ ok: false, error: "leave not supported on this site" });
@@ -157,7 +180,13 @@
 	function register(nextAdapter) {
 		adapter = nextAdapter;
 		stop();
-		chrome.runtime.onMessage.addListener(onCommand);
+		if (!alive()) return; // sandboxed or about:blank frame without extension APIs
+		try {
+			chrome.runtime.onMessage.addListener(onCommand);
+		} catch (err) {
+			console.debug(LOG, "cannot listen for commands in this frame", err);
+			return;
+		}
 		timer = setInterval(poll, POLL_MS);
 		poll();
 	}

@@ -114,7 +114,7 @@ npm install            # root: vitest + jsdom for the extension tests
 npm test               # syntax-checks the extension, runs the adapter and worker tests, then the bridge tests
 ```
 
-The background test binds the real bridge to port 51234, so stop the Stream Deck app (or unlink the plugin) before running it.
+Tests bind the bridge to random free ports, so they run fine while the Stream Deck app and the extension are active.
 
 Repository layout:
 
@@ -148,3 +148,10 @@ extension/                   Chrome extension (Manifest V3, plain JavaScript, no
 - Content scripts only read button attributes and call `click()`. They never touch media streams, so the meeting UI always shows the true state, but the key can lag the real state by up to the 400 ms poll interval.
 - Stream Deck ignores `setImage` on keys that have a user-set custom image.
 - If port 51234 is taken by another program the plugin logs the error and retries every 3 seconds; the keys show the disconnected icon meanwhile.
+
+## Error handling
+
+Nothing in the extension is meant to surface as an error in `chrome://extensions`. All failures it can hit are transient (plugin not running, tab closed mid-command, worker restarted by Chrome) and are retried on the next alarm, heartbeat or reconnect; they are logged at debug level only. Two details worth knowing:
+
+- Before opening its WebSocket, the worker sends a plain HTTP request to the plugin's port. Chrome logs a failed WebSocket handshake as an extension error and nothing can suppress that, whereas a failed `fetch` is just a rejected promise. The plugin answers the probe with `426 Upgrade Required`, which is enough to know it is up. While the Stream Deck app is closed the worker probes every 1 to 10 seconds in silence.
+- The plugin never keeps its own process alive: the bridge's listener, client sockets and timers are all `unref`ed, so when Stream Deck stops or uninstalls the plugin the process exits and frees the port instead of lingering.

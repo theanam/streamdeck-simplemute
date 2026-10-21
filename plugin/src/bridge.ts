@@ -5,7 +5,7 @@
  * This module deliberately has no Stream Deck SDK imports so it can be unit-tested in plain Node.
  */
 import { EventEmitter } from "node:events";
-import type { IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 
 import {
@@ -90,6 +90,7 @@ export class Bridge extends EventEmitter {
 	readonly #log: BridgeLogger;
 
 	#server: WebSocketServer | null = null;
+	#http: Server | null = null;
 	#clients = new Map<WebSocket, Client>();
 	#pending = new Map<string, Pending>();
 	#heartbeat: NodeJS.Timeout | null = null;
@@ -116,7 +117,7 @@ export class Bridge extends EventEmitter {
 
 	/** Port the server is listening on (useful when constructed with port 0 in tests). */
 	get port(): number {
-		const address = this.#server?.address();
+		const address = this.#http?.address();
 		return typeof address === "object" && address ? address.port : this.#port;
 	}
 
@@ -125,40 +126,66 @@ export class Bridge extends EventEmitter {
 		return this.#clients.size;
 	}
 
-	/** Starts listening; resolves once the server is up. On error it logs and retries every `retryMs`. */
+	/**
+	 * Starts listening; resolves once the server is up. On error it logs and retries every `retryMs`.
+	 *
+	 * Everything the bridge owns (listener, client sockets, timers) is `unref`ed so it never keeps the
+	 * process alive on its own. Stream Deck stops a plugin by closing its socket and expecting the
+	 * process to exit; without this the plugin would linger as a zombie holding the port.
+	 */
 	start(): Promise<void> {
 		this.#stopped = false;
 		return new Promise((resolve) => {
+			const http = createServer((req, res) => this.#onHttpRequest(req, res));
+			http.unref();
+			this.#http = http;
+
 			const server = new WebSocketServer({
-				host: this.#host,
-				port: this.#port,
+				server: http,
 				maxPayload: MAX_PAYLOAD_BYTES,
 				verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) =>
 					this.#verifyClient(info.origin, info.req.socket.remoteAddress),
 			});
 			this.#server = server;
 
-			server.once("listening", () => {
+			http.once("listening", () => {
 				this.#log.info(`Bridge listening on ws://${this.#host}:${this.port}`);
 				this.#startHeartbeat();
 				resolve();
 			});
 
-			server.on("connection", (socket) => this.#onConnection(socket));
+			server.on("connection", (socket, req) => {
+				req.socket.unref();
+				this.#onConnection(socket);
+			});
 
-			server.on("error", (err: NodeJS.ErrnoException) => {
+			const onError = (err: NodeJS.ErrnoException): void => {
 				this.#log.error(`Bridge server error (${err.code ?? "unknown"}): ${err.message}; retrying in ${this.#retryMs} ms`);
 				this.#stopHeartbeat();
 				server.close();
+				http.close();
 				this.#server = null;
+				this.#http = null;
 				if (!this.#stopped) {
 					this.#retry = setTimeout(() => {
 						this.#retry = null;
 						void this.start().then(resolve);
 					}, this.#retryMs);
+					this.#retry.unref();
 				}
-			});
+			};
+			http.on("error", onError);
+			server.on("error", onError);
+
+			http.listen(this.#port, this.#host);
 		});
+	}
+
+	/** Plain HTTP requests (the extension's reachability probe) get a 426 like `ws` itself would send. */
+	#onHttpRequest(_req: IncomingMessage, res: ServerResponse): void {
+		const body = "Upgrade Required";
+		res.writeHead(426, { "Content-Type": "text/plain", "Content-Length": body.length, Connection: "close" });
+		res.end(body);
 	}
 
 	/** Closes the server and every client socket. */
@@ -179,8 +206,15 @@ export class Bridge extends EventEmitter {
 		}
 		this.#clients.clear();
 		const server = this.#server;
+		const http = this.#http;
 		this.#server = null;
+		this.#http = null;
 		await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()));
+		await new Promise<void>((resolve) => {
+			if (!http) return resolve();
+			http.closeAllConnections();
+			http.close(() => resolve());
+		});
 		this.#updateStatus();
 	}
 
@@ -213,6 +247,7 @@ export class Bridge extends EventEmitter {
 				this.#log.warn(`command ${id} timed out after ${this.#commandTimeoutMs} ms`);
 				resolve(false);
 			}, this.#commandTimeoutMs);
+			timer.unref();
 			this.#pending.set(id, { client: target, resolve, timer });
 			this.#send(target, { type: "command", id, action, kind });
 		});
@@ -404,6 +439,7 @@ export class Bridge extends EventEmitter {
 				client.socket.ping();
 			}
 		}, this.#heartbeatIntervalMs);
+		this.#heartbeat.unref();
 	}
 
 	#stopHeartbeat(): void {

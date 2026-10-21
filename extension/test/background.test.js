@@ -1,8 +1,11 @@
 // @vitest-environment node
 // Integration test: runs the real background.js against the real plugin bridge, with `chrome` mocked.
+// Each worker runs in its own vm context with tracked timers and sockets, so teardown really stops it.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
+import { Agent, fetch as undiciFetch } from "undici";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket as WsClient } from "ws";
 
@@ -56,44 +59,125 @@ function mockChrome() {
 	return { chrome, fire, storage };
 }
 
-async function waitFor(predicate, label = "condition") {
-	const until = Date.now() + 3000;
+/**
+ * Runs background.js in an isolated context. Timers and sockets it creates are tracked so
+ * `teardown()` stops the worker for good; `outgoing` holds every frame it sent to the plugin.
+ */
+function loadWorker(chrome, port) {
+	// The real extensions in the user's Chrome profiles poll 51234 and would connect to a test bridge
+	// on that port, so each test runs on a random free port, patched into the worker source.
+	const src = backgroundSrc.replace("const PORT = 51234;", `const PORT = ${port};`);
+	if (src === backgroundSrc) throw new Error("could not patch PORT in background.js");
+	const timers = new Set();
+	const sockets = [];
+	const outgoing = [];
+	let dead = false;
+
+	const ctx = {
+		chrome,
+		console,
+		crypto,
+		// After teardown a probe in flight must not resurrect the worker, so dead workers cannot fetch...
+		// Each probe also gets a fresh connection: Node's fetch would otherwise reuse a keep-alive socket
+		// that the previous test's bridge closed and fail with ECONNRESET (Chrome retries that case itself).
+		fetch: (url, init) => {
+			if (dead) return Promise.reject(new Error("worker torn down"));
+			// undici's own fetch is used because a dispatcher must match the fetch implementation's version.
+			const agent = new Agent();
+			return undiciFetch(url, { ...init, dispatcher: agent }).finally(() => agent.close());
+		},
+		AbortSignal,
+		self: { addEventListener: () => {} },
+		// Chrome sets the Origin header itself; emulate that on the ws client the worker constructs.
+		// ...nor open sockets.
+		WebSocket: class extends WsClient {
+			constructor(url) {
+				if (dead) throw new Error("worker torn down");
+				super(url, { origin: EXT_ORIGIN });
+				sockets.push(this);
+			}
+			send(data) {
+				outgoing.push(JSON.parse(data));
+				super.send(data);
+			}
+		},
+		setTimeout: (fn, ms) => {
+			if (dead) return 0;
+			const h = setTimeout(() => {
+				timers.delete(h);
+				if (!dead) fn();
+			}, ms);
+			timers.add(h);
+			return h;
+		},
+		clearTimeout: (h) => {
+			clearTimeout(h);
+			timers.delete(h);
+		},
+		setInterval: (fn, ms) => {
+			if (dead) return 0;
+			const h = setInterval(() => {
+				if (!dead) fn();
+			}, ms);
+			timers.add(h);
+			return h;
+		},
+		clearInterval: (h) => {
+			clearInterval(h);
+			timers.delete(h);
+		},
+	};
+	vm.createContext(ctx);
+	vm.runInContext(src, ctx, { filename: "background.js" });
+
+	return {
+		sockets,
+		outgoing,
+		states: () => outgoing.filter((m) => m.type === "state"),
+		teardown() {
+			dead = true;
+			for (const h of timers) {
+				clearTimeout(h);
+				clearInterval(h);
+			}
+			timers.clear();
+			for (const s of sockets) s.terminate();
+		},
+	};
+}
+
+async function waitFor(predicate, label = "condition", timeoutMs = 3000) {
+	const until = Date.now() + timeoutMs;
 	while (!predicate()) {
 		if (Date.now() > until) throw new Error(`Timed out waiting for ${label}`);
 		await new Promise((r) => setTimeout(r, 5));
 	}
 }
 
-let bridge;
+let bridge = null;
 let mock;
-/** Every frame the worker sent to the plugin, parsed. */
-let outgoing;
+let worker = null;
 
-beforeEach(async () => {
-	vi.spyOn(console, "debug").mockImplementation(() => {});
-	bridge = new Bridge({ port: 51234, commandTimeoutMs: 500, logger: undefined });
+let port = 0;
+
+/** Starts the bridge on a random free port the first time, then reuses that port for restarts. */
+async function startBridge() {
+	bridge = new Bridge({ port, commandTimeoutMs: 500 });
 	await bridge.start();
+	port = bridge.port;
+}
+
+beforeEach(() => {
+	vi.spyOn(console, "debug").mockImplementation(() => {});
 	mock = mockChrome();
-	globalThis.chrome = mock.chrome;
-	// Chrome sets the Origin header itself; emulate that on the ws client the worker will construct,
-	// and record what the worker sends so tests can assert on `focused`.
-	outgoing = [];
-	globalThis.WebSocket = class extends WsClient {
-		constructor(url) {
-			super(url, { origin: EXT_ORIGIN });
-		}
-		send(data) {
-			outgoing.push(JSON.parse(data));
-			super.send(data);
-		}
-	};
-	new Function(backgroundSrc)();
-	await waitFor(() => bridge.clientCount === 1, "worker to connect");
-	await waitFor(() => bridge.status.connected, "bridge to see the client");
+	port = 0;
 });
 
 afterEach(async () => {
-	await bridge.stop();
+	worker?.teardown();
+	worker = null;
+	if (bridge) await bridge.stop();
+	bridge = null;
 	vi.restoreAllMocks();
 });
 
@@ -102,6 +186,14 @@ function contentState(tabId, frameId, state) {
 }
 
 describe("background service worker", () => {
+	beforeEach(async () => {
+		await startBridge();
+		worker = loadWorker(mock.chrome, port);
+		await waitFor(() => bridge.clientCount === 1, "worker to connect");
+		await waitFor(() => bridge.status.connected, "bridge to see the client");
+		await waitFor(() => worker.outgoing.some((m) => m.type === "hello"), "hello to be sent");
+	});
+
 	it("says hello with a persisted clientId and clears the badge", async () => {
 		expect(typeof mock.storage.clientId).toBe("string");
 		expect(mock.storage.clientId).toMatch(/^[0-9a-f-]{36}$/);
@@ -160,26 +252,54 @@ describe("background service worker", () => {
 	});
 
 	it("tracks window focus so the plugin can pick between profiles", async () => {
-		const states = () => outgoing.filter((m) => m.type === "state");
 		mock.fire("onActivated", { tabId: 9, windowId: 1 });
 		contentState(9, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on" });
-		await waitFor(() => states().some((s) => s.inMeeting && s.focused === true), "focused state");
+		await waitFor(() => worker.states().some((s) => s.inMeeting && s.focused === true), "focused state");
 
 		mock.fire("onFocusChanged", mock.chrome.windows.WINDOW_ID_NONE);
-		await waitFor(() => states().at(-1)?.focused === false, "unfocused state");
+		await waitFor(() => worker.states().at(-1)?.focused === false, "unfocused state");
 
 		mock.chrome.tabs.query.mockResolvedValueOnce([{ id: 9 }]);
 		await Promise.all(mock.fire("onFocusChanged", 1));
-		await waitFor(() => states().at(-1)?.focused === true, "refocused state");
+		await waitFor(() => worker.states().at(-1)?.focused === true, "refocused state");
 	});
 
 	it("only sends a state when it changed", async () => {
 		contentState(5, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on" });
 		await waitFor(() => bridge.status.inMeeting);
-		const before = outgoing.filter((m) => m.type === "state").length;
+		const before = worker.states().length;
 		contentState(5, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on" });
 		contentState(5, 0, { site: "meet", inMeeting: true, mic: "on", camera: "on" });
 		await new Promise((r) => setTimeout(r, 30));
-		expect(outgoing.filter((m) => m.type === "state").length).toBe(before);
+		expect(worker.states().length).toBe(before);
 	});
+
+	it("survives a plugin restart without opening sockets while the port is closed", async () => {
+		const opened = worker.sockets.length;
+		await bridge.stop();
+		bridge = null;
+		await new Promise((r) => setTimeout(r, 2500));
+		expect(worker.sockets.length).toBe(opened); // probes only, no WebSocket attempts
+		expect(mock.chrome.action.setBadgeText).toHaveBeenLastCalledWith({ text: "!" });
+
+		await startBridge();
+		await waitFor(() => bridge.clientCount === 1, "worker to reconnect", 12_000);
+		expect(worker.sockets.length).toBe(opened + 1);
+	}, 20_000);
+});
+
+describe("background service worker with the plugin down", () => {
+	it("probes silently and never opens a WebSocket until the port answers", async () => {
+		// Reserve a port by binding and releasing it, so the worker probes a closed port.
+		await startBridge();
+		await bridge.stop();
+		bridge = null;
+		worker = loadWorker(mock.chrome, port);
+		await new Promise((r) => setTimeout(r, 2500));
+		expect(worker.sockets.length).toBe(0);
+
+		await startBridge();
+		await waitFor(() => bridge.clientCount === 1, "worker to connect once the port answers", 12_000);
+		expect(worker.sockets.length).toBe(1);
+	}, 20_000);
 });

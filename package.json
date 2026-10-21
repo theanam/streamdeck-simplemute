@@ -12,6 +12,7 @@
 	},
 	"devDependencies": {
 		"jsdom": "^26.1.0",
+		"undici": "^8.12.3",
 		"vitest": "^3.2.4"
 	}
 }
