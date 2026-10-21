@@ -13,7 +13,8 @@
 		"pack:extension": "node scripts/pack-extension.mjs",
 		"pack:plugin": "npm --prefix plugin run pack -- --force --output ../store/elgato",
 		"pack": "npm run pack:extension && npm run pack:plugin",
-		"publish:chrome": "npm run pack:extension && node scripts/publish-chrome.mjs --publish"
+		"publish:chrome": "npm run pack:extension && node scripts/publish-chrome.mjs --publish",
+		"release": "node scripts/release.mjs"
 	},
 	"devDependencies": {
 		"jsdom": "^26.1.0",

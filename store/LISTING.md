@@ -85,3 +85,10 @@ Requirements: Stream Deck 7.1 or newer, Chrome 116 or newer (or Edge, Brave, Arc
 - Gallery (3 minimum): `store/elgato/gallery-1-1920x960.png` … `gallery-3-1920x960.png`
 
 **Before uploading:** bump `Version` in the plugin manifest (four-part, e.g. `0.1.1.0`); Maker Console requires a higher version for each new upload.
+
+## Release notes
+
+Newest first. Paste the matching entry into each store's release-notes field. `npm run release` adds entries here.
+
+### 0.1.0 (2026-10-22)
+Initial release. Mute, Camera, Share Screen and Leave Meeting keys for Google Meet, Zoom web and Teams web; live key state with app pill; macOS system mic fallback.
