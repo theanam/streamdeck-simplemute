@@ -137,20 +137,25 @@ function monoSvg(kind, color = "#e4e4e7") {
 }
 
 /**
- * SimpleMute brand mark: a mic with a bold amber slash, drawn in one colour for the category icon
- * and on an indigo tile for the plugin and extension icons. Deliberately shows no conferencing brand.
+ * SimpleMute brand mark: a mic above a toggle switch, which says "mic control" rather than "muted".
+ * Drawn in one colour for the category icon and on an indigo tile for the plugin and extension icons.
+ * Deliberately shows no conferencing brand.
  */
-function markSvg(micColor, slashColor, cutColor) {
+function markSvg(micColor, trackColor, knobColor) {
 	return `
-		<rect x="58" y="22" width="28" height="54" rx="14" fill="${micColor}"/>
-		<path d="M44 64 a28 28 0 0 0 56 0" fill="none" stroke="${micColor}" stroke-width="10" stroke-linecap="round"/>
-		<path d="M72 92 v18 M52 110 h40" fill="none" stroke="${micColor}" stroke-width="10" stroke-linecap="round"/>
-		<path d="M34 30 L110 114" stroke="${cutColor}" stroke-width="26" stroke-linecap="round"/>
-		<path d="M34 30 L110 114" stroke="${slashColor}" stroke-width="12" stroke-linecap="round"/>`;
+		<rect x="59" y="18" width="26" height="48" rx="13" fill="${micColor}"/>
+		<path d="M46 54 a26 26 0 0 0 52 0" fill="none" stroke="${micColor}" stroke-width="9" stroke-linecap="round"/>
+		<path d="M72 81 v10" fill="none" stroke="${micColor}" stroke-width="9" stroke-linecap="round"/>
+		<rect x="42" y="100" width="60" height="26" rx="13" fill="${trackColor}"/>
+		<circle cx="89" cy="113" r="9.5" fill="${knobColor}"/>`;
 }
 
 function categorySvg() {
-	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">${markSvg("#e4e4e7", "#e4e4e7", "transparent")}</svg>`;
+	// Single colour: the knob is cut out of the track so it still reads as a switch.
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">
+		<mask id="knob"><rect width="144" height="144" fill="#fff"/><circle cx="89" cy="113" r="9.5" fill="#000"/></mask>
+		<g mask="url(#knob)">${markSvg("#e4e4e7", "#e4e4e7", "#e4e4e7")}</g>
+	</svg>`;
 }
 
 function appSvg() {
@@ -162,7 +167,7 @@ function appSvg() {
 			</linearGradient>
 		</defs>
 		<rect width="144" height="144" rx="32" fill="url(#bg)"/>
-		${markSvg("#ffffff", "#f59e0b", "#3730a3")}
+		${markSvg("#ffffff", "#22c55e", "#ffffff")}
 	</svg>`;
 }
 
