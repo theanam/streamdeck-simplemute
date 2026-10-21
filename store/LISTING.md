@@ -33,7 +33,7 @@ Requirements
 • Stream Deck app 7.1 or newer with the SimpleMute plugin
 
 Open source
-Code, setup guide and plugin download: https://github.com/YOUR-GITHUB-USER/streamdeck-simplemute
+Code, setup guide and plugin download: https://github.com/theanam/streamdeck-simplemute
 Stream Deck plugin: Elgato Marketplace link coming soon.
 
 **Category:** Productivity → Tools. **Language:** English.
