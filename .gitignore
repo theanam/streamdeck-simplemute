@@ -2,8 +2,8 @@
 node_modules/
 
 # Stream Deck runtime files (the built bin/plugin.js is committed on purpose)
-*.sdPlugin/logs
-*.sdPlugin/bin/*.map
+**/*.sdPlugin/logs
+**/*.sdPlugin/bin/*.map
 *.streamDeckPlugin
 
 # OS
