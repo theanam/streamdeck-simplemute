@@ -1,0 +1,17 @@
+{
+	"name": "streamdeck-simplemute",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Stream Deck plugin + Chrome extension that toggle mic and camera in browser meetings.",
+	"type": "module",
+	"scripts": {
+		"check": "node scripts/check-extension.mjs",
+		"test:extension": "vitest run",
+		"test:plugin": "npm --prefix plugin test",
+		"test": "npm run check && npm run test:extension && npm run test:plugin"
+	},
+	"devDependencies": {
+		"jsdom": "^26.1.0",
+		"vitest": "^3.2.4"
+	}
+}
