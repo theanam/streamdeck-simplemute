@@ -15,7 +15,7 @@ SimpleMute is two parts that talk to each other over localhost:
 
 ## Install
 
-Neither part is in a store yet, so both are installed from the files in this repository. No build tools are needed.
+The extension is on the Chrome Web Store; the plugin is a one-file download until it is listed on the Elgato Marketplace. No build tools are needed.
 
 **Requirements:** Stream Deck app 7.1 or newer on macOS 12+ or Windows 10+; Chrome 116 or newer (Edge, Brave and Arc work too).
 
@@ -25,18 +25,13 @@ Download **[co.anam.simplemute.streamDeckPlugin](https://github.com/theanam/stre
 
 ### 2. Browser extension
 
-Download **[simplemute-extension.zip](https://github.com/theanam/streamdeck-simplemute/releases/latest/download/simplemute-extension.zip)** and unzip it somewhere permanent, for example `~/SimpleMute/extension`. Chrome loads the extension from that folder every time it starts, so don't delete or move it later.
+<a href="https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm"><img src="store/chrome/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="58"></a>
 
-Then load it:
+Click **Add to Chrome** on the store page. The same listing works in Edge, Brave and Arc. Install it in every browser profile you use for meetings; each profile keeps its own extension and its own connection.
 
-1. Open `chrome://extensions` (in Edge `edge://extensions`, in Brave `brave://extensions`, in Arc `arc://extensions`).
-2. Turn on **Developer mode** with the switch in the top right.
-3. Click **Load unpacked** and choose the unzipped folder.
-4. The SimpleMute icon appears in the toolbar. Click the puzzle-piece menu and pin it if you want to see its status badge.
+The badge on the toolbar icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. Click the icon for a status panel: it says what the keys are controlling, or, when the plugin is not reachable, what to do about it, with a download link and a retry button.
 
-Repeat these steps in every browser profile you use for meetings; each profile keeps its own extension and its own connection.
-
-The badge on the icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. Click the icon for a status panel: it says what the keys are controlling, or, when the plugin is not reachable, what to do about it, with a download link and a retry button.
+<sub>Having trouble with the Chrome Web Store, or on a browser that can't use it? Download <a href="https://github.com/theanam/streamdeck-simplemute/releases/latest/download/simplemute-extension.zip">simplemute-extension.zip</a>, unzip it somewhere permanent, open <code>chrome://extensions</code>, turn on <b>Developer mode</b>, click <b>Load unpacked</b> and choose the unzipped folder. Chrome loads it from that folder on every start, so don't move or delete it. Updates are then manual: unzip the new version over the old folder and press the reload arrow on the extension's card.</sub>
 
 ### 3. Add a key
 
@@ -44,7 +39,7 @@ Drag **Mute** from the SimpleMute category onto a key. Join a meeting and the ke
 
 ### Updating
 
-Download the new files from the [Releases page](https://github.com/theanam/streamdeck-simplemute/releases). Double-click the new `.streamDeckPlugin` to replace the plugin. Unzip the new extension over the old folder and press the reload arrow on its card in `chrome://extensions`, in each profile. Open meeting tabs pick up the new version by themselves.
+The extension updates itself through the Chrome Web Store. For the plugin, download the new `.streamDeckPlugin` from the [Releases page](https://github.com/theanam/streamdeck-simplemute/releases) and double-click it to replace the installed one.
 
 Both files are also committed in this repository under [store/elgato](store/elgato) and [store/chrome](store/chrome) if you prefer to grab them from a clone.
 

@@ -1,5 +1,7 @@
 # Store listings
 
+Chrome Web Store listing: https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm
+
 Copy for the Chrome Web Store and the Elgato Marketplace, plus the exact files to upload. Regenerate images with `npm run assets:store`; build the uploadable packages with `npm run pack`.
 
 ## Chrome Web Store
@@ -72,11 +74,11 @@ Relays mute, camera, share and leave commands from the SimpleMute Stream Deck pl
 **Description (250 to 1500 characters, first 250 matter most for search):**
 One mute key for every browser-based meeting. SimpleMute detects the meeting running in your browser (Google Meet, Zoom web client or Microsoft Teams web) and mutes or unmutes it from a Stream Deck key. Keys show live on/off state and a small pill naming the app they control, so you always know what a press will do. Four actions: Mute, Camera, Share Screen and Leave Meeting. With no meeting open, the Mute key mutes your Mac's microphone instead. Everything runs on your machine: the plugin talks to a small browser extension over localhost, with no cloud, no account and no data collection.
 
-Requirements: Stream Deck 7.1 or newer, Chrome 116 or newer (or Edge, Brave, Arc) with the free SimpleMute browser extension installed. Screen share can be stopped from the key; starting one is limited by the browser to a click inside the page. The system microphone fallback is macOS only.
+Requirements: Stream Deck 7.1 or newer, Chrome 116 or newer (or Edge, Brave, Arc) with the free SimpleMute browser extension installed from the Chrome Web Store. Screen share can be stopped from the key; starting one is limited by the browser to a click inside the page. The system microphone fallback is macOS only.
 
 **Tags:** meetings, mute, microphone, camera, Google Meet, Zoom, Teams, browser, video call.
 
-**Additional links:** repository (README with setup and troubleshooting), extension install page (Chrome Web Store URL once published).
+**Additional links:** repository (README with setup and troubleshooting), extension install page: https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm
 
 **Release notes (first version):** Initial release. Mute, Camera, Share Screen and Leave Meeting keys for Google Meet, Zoom web and Teams web; live key state with app pill; macOS system mic fallback.
 
