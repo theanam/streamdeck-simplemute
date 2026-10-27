@@ -1,7 +1,6 @@
 // Toolbar popup: shows whether the plugin is reachable and what the keys are controlling.
 const LINKS = {
-	// Update these when the plugin is listed on the Elgato Marketplace.
-	pluginDownload: "https://github.com/theanam/streamdeck-simplemute/releases/latest/download/co.anam.simplemute.streamDeckPlugin",
+	pluginDownload: "https://marketplace.elgato.com/product/simplemute-3e505bc6-2650-4048-8475-f86d27ca9adc",
 	guide: "https://github.com/theanam/streamdeck-simplemute#install",
 };
 

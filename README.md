@@ -8,40 +8,44 @@ One mute key for every browser meeting. SimpleMute lets a Stream Deck key mute y
 
 Works with **Google Meet**, the **Zoom web client** and **Microsoft Teams web**, in Chrome, Edge, Brave and Arc, across any number of browser profiles. Everything runs on your computer: no account, no cloud, no data collection.
 
-SimpleMute is two parts that talk to each other over localhost:
-
-- a **Stream Deck plugin**, which runs inside the Stream Deck app, and
-- a **browser extension**, which finds the meeting tab and clicks its buttons.
-
 ## Install
 
-The extension is on the Chrome Web Store; the plugin is a one-file download until it is listed on the Elgato Marketplace. No build tools are needed.
+SimpleMute is two parts that talk to each other over localhost. Install both, then drag the Mute key onto your Stream Deck.
 
-**Requirements:** Stream Deck app 7.1 or newer on macOS 12+ or Windows 10+; Chrome 116 or newer (Edge, Brave and Arc work too).
+<p align="center">
+  <img src="docs/install.png" alt="1. Install the Stream Deck plugin into the Stream Deck app. 2. Add the browser extension to Chrome." width="800">
+</p>
 
-### 1. Stream Deck plugin
+<table align="center">
+  <tr>
+    <td align="center"><strong>1. Stream Deck plugin</strong></td>
+    <td align="center"><strong>2. Browser extension</strong></td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://marketplace.elgato.com/product/simplemute-3e505bc6-2650-4048-8475-f86d27ca9adc"><img src="docs/badge-elgato-marketplace.png" alt="Get it on Elgato Marketplace" height="58"></a>
+    </td>
+    <td align="center">
+      <a href="https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm"><img src="docs/badge-chrome-web-store.png" alt="Available in the Chrome Web Store" height="58"></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">Click <strong>Get</strong>; the Stream Deck app installs it.</td>
+    <td align="center">Click <strong>Add to Chrome</strong>, once per browser profile.</td>
+  </tr>
+</table>
 
-Download **[co.anam.simplemute.streamDeckPlugin](https://github.com/theanam/streamdeck-simplemute/releases/latest/download/co.anam.simplemute.streamDeckPlugin)** and double-click it. The Stream Deck app installs it, and a **SimpleMute** category with four actions appears in the action list on the right. The app fetches its own Node.js runtime for the plugin the first time, which can take a few seconds.
+**Requirements:** Stream Deck app 7.1 or newer on macOS 12+ or Windows 10+; Chrome 116 or newer (Edge, Brave and Arc work too; the same store listing serves them).
 
-### 2. Browser extension
+**Then add a key.** In the Stream Deck app, drag **Mute** from the SimpleMute category onto a key. Join a meeting and the key turns green or red within a second. Add **Camera**, **Share Screen** and **Leave Meeting** the same way if you want them.
 
-<a href="https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm"><img src="store/chrome/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="58"></a>
+The extension's toolbar icon shows a red `!` until it reaches the plugin, which takes a second or two with the Stream Deck app running. Click the icon for a status panel: it says what the keys are controlling, or, when the plugin is not reachable, what to do about it.
 
-Click **Add to Chrome** on the store page. The same listing works in Edge, Brave and Arc. Install it in every browser profile you use for meetings; each profile keeps its own extension and its own connection.
-
-The badge on the toolbar icon shows a red `!` until the extension reaches the plugin, which takes a second or two with the Stream Deck app running. Click the icon for a status panel: it says what the keys are controlling, or, when the plugin is not reachable, what to do about it, with a download link and a retry button.
-
-<sub>Having trouble with the Chrome Web Store, or on a browser that can't use it? Download <a href="https://github.com/theanam/streamdeck-simplemute/releases/latest/download/simplemute-extension.zip">simplemute-extension.zip</a>, unzip it somewhere permanent, open <code>chrome://extensions</code>, turn on <b>Developer mode</b>, click <b>Load unpacked</b> and choose the unzipped folder. Chrome loads it from that folder on every start, so don't move or delete it. Updates are then manual: unzip the new version over the old folder and press the reload arrow on the extension's card.</sub>
-
-### 3. Add a key
-
-Drag **Mute** from the SimpleMute category onto a key. Join a meeting and the key turns green or red within a second. Add **Camera**, **Share Screen** and **Leave Meeting** the same way if you want them.
+<sub><b>Without the stores.</b> Plugin: download <a href="https://github.com/theanam/streamdeck-simplemute/releases/latest/download/co.anam.simplemute.streamDeckPlugin">co.anam.simplemute.streamDeckPlugin</a> and double-click it. Extension: download <a href="https://github.com/theanam/streamdeck-simplemute/releases/latest/download/simplemute-extension.zip">simplemute-extension.zip</a>, unzip it somewhere permanent, open <code>chrome://extensions</code>, turn on <b>Developer mode</b>, click <b>Load unpacked</b> and choose the unzipped folder. Chrome loads it from that folder on every start, so don't move or delete it; updates on this path are manual (unzip the new version over the old folder and press the reload arrow on the extension's card).</sub>
 
 ### Updating
 
-The extension updates itself through the Chrome Web Store. For the plugin, download the new `.streamDeckPlugin` from the [Releases page](https://github.com/theanam/streamdeck-simplemute/releases) and double-click it to replace the installed one.
-
-Both files are also committed in this repository under [store/elgato](store/elgato) and [store/chrome](store/chrome) if you prefer to grab them from a clone.
+Both stores update automatically: the Stream Deck app updates Marketplace plugins and Chrome updates store extensions. If you installed from the files instead, new versions are on the [Releases page](https://github.com/theanam/streamdeck-simplemute/releases).
 
 ## Keys
 

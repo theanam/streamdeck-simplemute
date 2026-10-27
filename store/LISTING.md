@@ -1,6 +1,7 @@
 # Store listings
 
 Chrome Web Store listing: https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm
+Elgato Marketplace listing: https://marketplace.elgato.com/product/simplemute-3e505bc6-2650-4048-8475-f86d27ca9adc
 
 Copy for the Chrome Web Store and the Elgato Marketplace, plus the exact files to upload. Regenerate images with `npm run assets:store`; build the uploadable packages with `npm run pack`.
 
@@ -36,7 +37,7 @@ Requirements
 
 Open source
 Code, setup guide and plugin download: https://github.com/theanam/streamdeck-simplemute
-Stream Deck plugin: Elgato Marketplace link coming soon.
+Stream Deck plugin: https://marketplace.elgato.com/product/simplemute-3e505bc6-2650-4048-8475-f86d27ca9adc
 
 **Category:** Productivity → Tools. **Language:** English.
 
@@ -52,7 +53,7 @@ Relays mute, camera, share and leave commands from the SimpleMute Stream Deck pl
 
 **Data usage disclosure:** the extension does not collect or transmit user data. Check "This item does not collect user data" in the dashboard.
 
-**Popup:** the toolbar popup shows connection status and links to the plugin download; update `LINKS` in `extension/popup.js` when the Elgato Marketplace listing exists.
+**Popup:** the toolbar popup shows connection status and links to the plugin's Marketplace page (`LINKS` in `extension/popup.js`).
 
 **Privacy policy URL:** https://github.com/theanam/streamdeck-simplemute/blob/main/PRIVACY.md
 

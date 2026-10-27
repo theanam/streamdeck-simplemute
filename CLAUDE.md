@@ -34,7 +34,8 @@ After the script finishes, upload the packages to the stores by hand (Chrome Web
 
 ## Documentation
 
-- Install instructions in the README point users at the downloadable packages, never at build commands. Build steps live only under Development.
+- Install instructions sit at the top of the README: the explainer image (`docs/install.png`, rendered by `scripts/make-readme-art.mjs`) and the two store badges side by side (`docs/badge-*.png`, official artwork, resize only). Direct downloads are a footnote; build commands live only under Development.
+- Store links: Chrome Web Store `https://chromewebstore.google.com/detail/simplemute-for-stream-dec/aioaipbckipbgkgmhagngbchpcbhoemm`, Elgato Marketplace `https://marketplace.elgato.com/product/simplemute-3e505bc6-2650-4048-8475-f86d27ca9adc`. They appear in README, `store/LISTING.md` and `extension/popup.js`.
 - The Chrome Web Store caps the manifest `description` at 132 characters and `name` at 45; `npm run pack:extension` enforces this.
 - Elgato's Marketplace product name cannot be changed after the first submission.
 
